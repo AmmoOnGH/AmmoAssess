@@ -203,18 +203,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px;background:#001c2f}
 .lp-bg-fallback{position:absolute;inset:0;background:linear-gradient(135deg,#001c2f 0%,#002d45 40%,#001a2c 100%);z-index:0}
 .lp-bg{position:absolute;inset:0;background-image:url('/bg.jpg');background-size:cover;background-position:center;opacity:.9;filter:saturate(1.1);z-index:1}
-.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.97);border-radius:0;width:100%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}.lp-card-hdr{background:#001c2f;padding:16px 24px}
-.lp-logo{font-size:22px;font-weight:400;color:#fff;font-family:'PT Mono',monospace}
-.lp-logo em{font-style:normal;color:#68e348}
+.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.97);border-radius:0;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}.lp-card-hdr{background:#001c2f;padding:16px 24px}
+.lp-logo{font-size:22px;font-weight:700;color:#fff;font-family:'PT Mono',monospace}
+.lp-logo em{font-style:normal;color:#68e348;font-weight:400}
 .lp-ver{position:fixed;top:12px;right:16px;font-size:11px;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;z-index:10;letter-spacing:.04em}
 .lp-card-body{padding:28px 28px 20px}
 .lp-card-body h2{font-size:17px;font-weight:700;color:var(--text);margin-bottom:20px}
 .lp-f{display:flex;flex-direction:column;gap:4px;margin-bottom:13px}
 .lp-f label{font-size:13px;font-weight:500;color:var(--text)}
-.lp-f input{border:1.5px solid var(--border);border-radius:4px;padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);transition:border-color .15s;background:#f5f8fa}
-.lp-f input:focus{outline:none;border-color:var(--teal);background:#fff}
+.lp-f input{border:1.5px solid var(--border);border-radius:4px;padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);transition:border-color .15s,background .15s;background:#fff}
+.lp-f input:focus{outline:none;border-color:var(--teal)}
+.lp-f input.has-val{background:#e5eefe;border-color:#b3c6f5}
 .lp-actions{display:flex;align-items:center;gap:12px;margin-top:6px}
-.lp-btn{padding:9px 24px;background:#005e7a;color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.lp-btn{padding:9px 24px;background:#005e7a;color:#fff;border:1px solid #000c1f;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
 .lp-btn:hover{background:#006f8f}
 .lp-err{color:#c62828;font-size:12px;font-weight:500;flex:1}
 .lp-storage{font-size:11px;color:#8a9baa;padding:10px 28px 16px;border-top:1px solid #e8edf0;margin-top:4px}
@@ -449,10 +450,10 @@ function LoginPage({ onLogin }) {
         <div className="lp-card-body">
           <h2>Enter your login credentials</h2>
           <div className="lp-f"><label>Username</label>
-            <input value={un} onChange={e=>{setUn(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()} autoFocus/>
+            <input className={un?"has-val":""} value={un} onChange={e=>{setUn(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()} autoFocus/>
           </div>
           <div className="lp-f"><label>Password</label>
-            <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
+            <input className={pw?"has-val":""} type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>
           <div className="lp-actions">
             <button className="lp-btn" onClick={go} disabled={locked} style={locked?{opacity:.5,cursor:"not-allowed"}:{}}>
