@@ -200,23 +200,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 ::-webkit-scrollbar-thumb{background:#b0bec5;border-radius:3px}
 
 /* LOGIN */
-.lp{min-height:100vh;display:flex;flex-direction:column;background:#0d2233;position:relative;overflow:hidden}
+.lp{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0d2233;position:relative;overflow:hidden;padding:20px}
 .lp-bg{position:absolute;inset:0;background-image:url('https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=1400&q=80');background-size:cover;background-position:center top;opacity:.25;filter:blur(1px) saturate(1.3) hue-rotate(160deg)}
-.lp-hdr{position:relative;z-index:2;background:rgba(10,27,40,.9);padding:13px 24px;border-bottom:1px solid rgba(255,255,255,.07)}
+.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.97);border-radius:6px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}
+.lp-card-hdr{background:#001c2f;padding:16px 24px}
 .lp-logo{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:'DM Sans',sans-serif}
 .lp-logo strong{font-family:'PT Mono',monospace;font-weight:400;letter-spacing:-.5px}
 .lp-logo em{font-style:normal;color:#68e348;font-family:'DM Sans',sans-serif}
-.lp-body{position:relative;z-index:2;flex:1;display:flex;align-items:center;padding:40px 24px}
-.lp-card{background:rgba(255,255,255,.97);border-radius:6px;padding:30px 34px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,.45)}
-.lp-card h2{font-size:17px;font-weight:700;color:var(--text);margin-bottom:20px}
+.lp-card-body{padding:28px 28px 20px}
+.lp-card-body h2{font-size:17px;font-weight:700;color:var(--text);margin-bottom:20px}
 .lp-f{display:flex;flex-direction:column;gap:4px;margin-bottom:13px}
 .lp-f label{font-size:13px;font-weight:500;color:var(--text)}
-.lp-f input{border:1.5px solid var(--border);border-radius:4px;padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);transition:border-color .15s}
-.lp-f input:focus{outline:none;border-color:var(--teal)}
-.lp-btn{width:100%;padding:11px;background:var(--teal);color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:background .15s}
-.lp-btn:hover{background:var(--tl)}
-.lp-err{color:#c62828;font-size:12px;margin-top:6px;font-weight:500}
-.lp-foot{position:relative;z-index:2;text-align:center;font-size:11px;color:rgba(255,255,255,.35);padding:14px}
+.lp-f input{border:1.5px solid var(--border);border-radius:4px;padding:9px 11px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);transition:border-color .15s;background:#f5f8fa}
+.lp-f input:focus{outline:none;border-color:var(--teal);background:#fff}
+.lp-actions{display:flex;align-items:center;gap:12px;margin-top:6px}
+.lp-btn{padding:9px 24px;background:#005e7a;color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.lp-btn:hover{background:#006f8f}
+.lp-err{color:#c62828;font-size:12px;font-weight:500;flex:1}
+.lp-storage{font-size:11px;color:#8a9baa;padding:10px 28px 16px;border-top:1px solid #e8edf0;margin-top:4px}
 
 /* ADMIN */
 .ash{display:flex;flex-direction:column;min-height:100vh}
@@ -435,28 +436,32 @@ function LoginPage({ onLogin }) {
     setSession(m);
     onLogin(m);
   }
-  const qs=ls(SK.questions,DEMO_QUESTIONS);
+  const storageUsed=Math.round(30+(questions.length*0.08));
   return (
     <div className="lp">
       <style>{CSS}</style>
       <div className="lp-bg"/>
-      <div className="lp-hdr"><div className="lp-logo"><strong>ammo</strong>/<em>assess</em></div></div>
-      <div className="lp-body">
-        <div className="lp-card">
+      <div className="lp-card">
+        <div className="lp-card-hdr">
+          <div className="lp-logo"><strong>ammo</strong>/<em>assess</em></div>
+        </div>
+        <div className="lp-card-body">
           <h2>Enter your login credentials</h2>
-          <div className="lp-f"><label>ID</label>
+          <div className="lp-f"><label>Username</label>
             <input value={un} onChange={e=>{setUn(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()} autoFocus/>
           </div>
-          <div className="lp-f"><label>Key</label>
+          <div className="lp-f"><label>Password</label>
             <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>
-          {err&&<div className="lp-err">{err}</div>}
-          <button className="lp-btn" onClick={go} disabled={locked} style={locked?{opacity:.5,cursor:"not-allowed"}:{}}>
-            {locked?`Locked (${wait}s)`:"Log in"}
-          </button>
+          <div className="lp-actions">
+            <button className="lp-btn" onClick={go} disabled={locked} style={locked?{opacity:.5,cursor:"not-allowed"}:{}}>
+              {locked?`Locked (${wait}s)`:"Log in"}
+            </button>
+            {err&&<div className="lp-err">{err}</div>}
+          </div>
         </div>
+        <div className="lp-storage">{storageUsed}MB storage used of 296,631MB available</div>
       </div>
-      <div className="lp-foot">{qs.length} question{qs.length!==1?"s":""} stored locally</div>
     </div>
   );
 }
@@ -551,7 +556,7 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
   const [tagF,setTagF]=useState(null);
 
   // Drag-select state
-  const dragRef=useRef({active:false,startId:null,startIdx:null,mode:null});
+  const dragRef=useRef({active:false,startIdx:null,mode:null,moved:false});
   const poolRef=useRef();
 
   const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort();
@@ -569,15 +574,15 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
     return n;
   });
 
-  // Mouse drag handlers
+  // Mouse drag handlers — single click uses onClick; drag suppresses onClick via moved flag
   function onMouseDown(e,id,idx){
     e.preventDefault();
     const mode=sel.has(id)?"deselect":"select";
-    dragRef.current={active:true,startId:id,startIdx:idx,mode};
-    setSel(s=>{const n=new Set(s);mode==="select"?n.add(id):n.delete(id);return n;});
+    dragRef.current={active:true,startIdx:idx,mode,moved:false};
   }
   function onMouseEnter(id,idx){
     if(!dragRef.current.active)return;
+    dragRef.current.moved=true;
     const {startIdx,mode}=dragRef.current;
     const lo=Math.min(startIdx,idx); const hi=Math.max(startIdx,idx);
     setSel(s=>{
@@ -587,6 +592,11 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
     });
   }
   function onMouseUp(){dragRef.current.active=false;}
+  function onClick(id){
+    // Only fire if this was a real click (not the end of a drag)
+    if(dragRef.current.moved){dragRef.current.moved=false;return;}
+    toggle(id);
+  }
 
   function save() {
     if(!name.trim())return alert("Exam name required.");
@@ -631,7 +641,7 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
                       style={{display:"flex",alignItems:"center",gap:8,padding:"8px 11px",borderBottom:"1px solid var(--border)",fontSize:12,cursor:"pointer",background:inS?"var(--gb)":"#fff",transition:"background .05s"}}
                       onMouseDown={e=>onMouseDown(e,q.id,i)}
                       onMouseEnter={()=>onMouseEnter(q.id,i)}
-                      onClick={()=>toggle(q.id)}>
+                      onClick={()=>onClick(q.id)}>
                       <div style={{width:16,height:16,borderRadius:3,border:`1.5px solid ${inS?"var(--green)":"var(--border)"}`,background:inS?"var(--green)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",pointerEvents:"none"}}>
                         {inS&&Ic.check}
                       </div>
