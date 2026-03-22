@@ -3,7 +3,71 @@ import { useState, useEffect, useRef } from "react";
 // ─────────────────────────────────────────────────────────────────────────────
 // STORAGE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-const SK = { questions:"sba_questions", exams:"sba_exams", users:"sba_users" };
+// Obfuscated storage keys — not self-describing
+const SK = { questions:"_ac_q7x", exams:"_ac_e3k", users:"_ac_u9m", attempts:"_ac_a2p" };
+
+// Simple deterministic hash — passwords stored and compared as hashes only
+function hashPw(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8,"0");
+}
+
+// Session token — random, lives in sessionStorage (clears on tab close)
+function makeToken() { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function getSession() { try { return JSON.parse(sessionStorage.getItem("_ac_tok")||"null"); } catch { return null; } }
+function setSession(u) { sessionStorage.setItem("_ac_tok", JSON.stringify({...u, tok:makeToken(), at:Date.now()})); }
+function clearSession() { sessionStorage.removeItem("_ac_tok"); }
+
+// Fisher-Yates shuffle — returns a new shuffled array
+function shuffle(arr) {
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+// Login rate limiter — max 5 attempts per username per 60s
+const RATE_WINDOW=60000; const MAX_ATTEMPTS=5;
+function checkRate(username) {
+  try {
+    const key=`_ac_rl_${hashPw(username.toLowerCase())}`;
+    const raw=sessionStorage.getItem(key);
+    const now=Date.now();
+    const attempts=raw?JSON.parse(raw).filter(t=>now-t<RATE_WINDOW):[];
+    if(attempts.length>=MAX_ATTEMPTS){
+      const wait=Math.ceil((RATE_WINDOW-(now-attempts[0]))/1000);
+      return {blocked:true,wait};
+    }
+    attempts.push(now);
+    sessionStorage.setItem(key,JSON.stringify(attempts));
+    return {blocked:false};
+  } catch { return {blocked:false}; }
+}
+
+// Migrate any existing plain-text passwords to hashed on first load
+function migrateUsers() {
+  const users=ls(SK.users, null);
+  if(!users) {
+    // First run — store default admin with hashed password
+    lsSet(SK.users,[{username:"admin",passwordHash:hashPw("admin123"),role:"admin"}]);
+    return;
+  }
+  // If any user still has plain 'password' field, hash and migrate
+  const needsMigration=users.some(u=>u.password!==undefined);
+  if(needsMigration){
+    const migrated=users.map(u=>{
+      if(u.password!==undefined){
+        const {password,...rest}=u;
+        return {...rest,passwordHash:hashPw(password)};
+      }
+      return u;
+    });
+    lsSet(SK.users,migrated);
+  }
+}
 
 const DEMO_QUESTIONS = [
   { id:"dq1", stem:"A 58-year-old man presents with 3 months of progressive dysphagia (solids then liquids) and 8 kg weight loss. He has a 30 pack-year smoking history and drinks 30 standard drinks/week. He appears cachectic. What is the MOST likely diagnosis?", options:{A:"Achalasia",B:"Oesophageal adenocarcinoma",C:"Oesophageal squamous cell carcinoma",D:"Diffuse oesophageal spasm",E:"Plummer-Vinson syndrome"}, answer:"C", explanation:"Progressive dysphagia (solids → liquids), significant weight loss, heavy smoking and high alcohol intake in an older male strongly favours oesophageal SCC. SCC is classically associated with smoking and alcohol; adenocarcinoma is more associated with GORD/Barrett's.", tags:["upper GI","oncology","difficulty-3"], dateAdded:"2026-03-20" },
@@ -11,7 +75,7 @@ const DEMO_QUESTIONS = [
   { id:"dq3", stem:"A 45-year-old obese woman with a 5-year history of heartburn/regurgitation is on omeprazole 20 mg daily with partial relief. Endoscopy reveals salmon-coloured mucosa 3 cm above the GOJ; biopsy confirms intestinal metaplasia. What is the MOST appropriate next step?", options:{A:"Increase omeprazole to 40 mg BD and repeat endoscopy in 5 years",B:"Urgent surgical referral for oesophagectomy",C:"Endoscopic surveillance with biopsies every 2–3 years",D:"Immediate referral for endoscopic mucosal resection",E:"Cease omeprazole and trial H2 receptor antagonist"}, answer:"C", explanation:"Non-dysplastic Barrett's oesophagus is managed with high-dose PPI and endoscopic surveillance every 2–3 years per current guidelines.", tags:["upper GI","gastroenterology","difficulty-2"], dateAdded:"2026-03-21" },
 ];
 
-const DEFAULT_USERS = [{ username:"admin", password:"admin123", role:"admin" }];
+const DEFAULT_USERS = [{ username:"admin", passwordHash:hashPw("admin123"), role:"admin" }];
 
 function ls(key, fallback) {
   try { const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; } catch { return fallback; }
@@ -21,6 +85,9 @@ function genId() { return Date.now().toString(36)+Math.random().toString(36).sli
 function fmt(s) {
   return `${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor((s%3600)/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 }
+
+// Run migration once at module load
+migrateUsers();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ICONS
@@ -285,11 +352,26 @@ function Modal({ title, onClose, children, footer, wide }) {
 // LOGIN
 // ─────────────────────────────────────────────────────────────────────────────
 function LoginPage({ onLogin }) {
-  const [un,setUn]=useState(""); const [pw,setPw]=useState(""); const [err,setErr]=useState("");
+  const [un,setUn]=useState(""); const [pw,setPw]=useState("");
+  const [err,setErr]=useState(""); const [locked,setLocked]=useState(false); const [wait,setWait]=useState(0);
+
+  // Countdown timer when locked
+  useEffect(()=>{
+    if(!locked) return;
+    const t=setInterval(()=>{
+      setWait(w=>{if(w<=1){setLocked(false);clearInterval(t);return 0;}return w-1;});
+    },1000);
+    return()=>clearInterval(t);
+  },[locked]);
+
   function go() {
+    if(locked) return;
+    const rate=checkRate(un);
+    if(rate.blocked){setLocked(true);setWait(rate.wait);setErr(`Too many attempts. Wait ${rate.wait}s.`);return;}
     const users=ls(SK.users,DEFAULT_USERS);
-    const m=users.find(u=>u.username.toLowerCase()===un.trim().toLowerCase()&&u.password===pw);
+    const m=users.find(u=>u.username.toLowerCase()===un.trim().toLowerCase()&&u.passwordHash===hashPw(pw));
     if(!m){setErr("Incorrect username or password.");return;}
+    setSession(m);
     onLogin(m);
   }
   const qs=ls(SK.questions,DEMO_QUESTIONS);
@@ -308,7 +390,9 @@ function LoginPage({ onLogin }) {
             <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>
           {err&&<div className="lp-err">{err}</div>}
-          <button className="lp-btn" onClick={go}>Log in</button>
+          <button className="lp-btn" onClick={go} disabled={locked} style={locked?{opacity:.5,cursor:"not-allowed"}:{}}>
+            {locked?`Locked (${wait}s)`:"Log in"}
+          </button>
         </div>
       </div>
       <div className="lp-foot">{qs.length} question{qs.length!==1?"s":""} stored locally</div>
@@ -370,7 +454,7 @@ function UModal({ onSave, onClose, exams }) {
   const [un,setUn]=useState(""); const [pw,setPw]=useState(""); const [role,setRole]=useState("student"); const [ae,setAe]=useState("");
   function save() {
     if(!un.trim()||!pw.trim())return alert("Username and password required.");
-    onSave({username:un.trim(),password:pw,role,assignedExam:role==="student"?ae:""});
+    onSave({username:un.trim(),passwordHash:hashPw(pw),role,assignedExam:role==="student"?ae:""});
   }
   return (
     <Modal title="Add Login" onClose={onClose}
@@ -593,9 +677,7 @@ function AdminUsers({ exams }) {
                 <button className="ib dg" style={{marginLeft:"auto"}} onClick={()=>delU(u.username)}>{Ic.trash}</button>
               </div>
               {u.role==="student"&&<div className="uex">{Ic.exam}{ex?ex.name:<em>No exam assigned</em>}</div>}
-              <div style={{fontSize:11,color:"var(--muted)",display:"flex",alignItems:"center",gap:4}}>
-                Password: <span style={{fontFamily:"monospace",letterSpacing:2}}>{"•".repeat(u.password.length)}</span>
-              </div>
+              <div style={{fontSize:11,color:"var(--muted)"}}>Password stored securely</div>
             </div>
           );})}
         </div>
@@ -838,15 +920,17 @@ function StudentLanding({ user, exam, onStart, onLogout }) {
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [user,setUser]=useState(null);
-  const [screen,setScreen]=useState("login");
+  // Restore session if tab is still open
+  const existingSession = getSession();
+  const [user,setUser]=useState(existingSession);
+  const [screen,setScreen]=useState(existingSession?(existingSession.role==="admin"?"admin":"student"):"login");
   const [examQs,setExamQs]=useState([]);
   const [examTime,setExamTime]=useState(0);
   const [results,setResults]=useState(null);
 
   function login(u){setUser(u);setScreen(u.role==="admin"?"admin":"student");}
-  function logout(){setUser(null);setScreen("login");setResults(null);}
-  function startExam(qs,time){setExamQs(qs);setExamTime(time);setScreen("exam");}
+  function logout(){clearSession();setUser(null);setScreen("login");setResults(null);}
+  function startExam(qs,time){setExamQs(shuffle(qs));setExamTime(time);setScreen("exam");}
   function finish(a,f){setResults({a,f});setScreen("results");}
   function returnHome(){setResults(null);setScreen(user?.role==="admin"?"admin":"student");}
 
