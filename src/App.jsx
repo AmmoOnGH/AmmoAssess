@@ -546,24 +546,59 @@ function UModal({ onSave, onClose, exams }) {
 function BuilderModal({ questions, initial, onSave, onClose }) {
   const [name,setName]=useState(initial?.name||"");
   const [dur,setDur]=useState(initial?.duration||150);
-  const [sel,setSel]=useState(initial?.questionIds||[]);
+  const [sel,setSel]=useState(new Set(initial?.questionIds||[]));
   const [search,setSearch]=useState("");
   const [tagF,setTagF]=useState(null);
+
+  // Drag-select state
+  const dragRef=useRef({active:false,startId:null,startIdx:null,mode:null});
+  const poolRef=useRef();
+
   const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort();
   const pool=questions.filter(q=>{
     const tok=!tagF||q.tags.includes(tagF);
     const stok=!search||q.stem.toLowerCase().includes(search.toLowerCase());
     return tok&&stok;
   });
-  const toggle=id=>setSel(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);
+
+  const toggle=id=>setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
+  const selAll=()=>setSel(s=>{
+    const allIn=pool.every(q=>s.has(q.id));
+    const n=new Set(s);
+    pool.forEach(q=>allIn?n.delete(q.id):n.add(q.id));
+    return n;
+  });
+
+  // Mouse drag handlers
+  function onMouseDown(e,id,idx){
+    e.preventDefault();
+    const mode=sel.has(id)?"deselect":"select";
+    dragRef.current={active:true,startId:id,startIdx:idx,mode};
+    setSel(s=>{const n=new Set(s);mode==="select"?n.add(id):n.delete(id);return n;});
+  }
+  function onMouseEnter(id,idx){
+    if(!dragRef.current.active)return;
+    const {startIdx,mode}=dragRef.current;
+    const lo=Math.min(startIdx,idx); const hi=Math.max(startIdx,idx);
+    setSel(s=>{
+      const n=new Set(s);
+      pool.forEach((q,i)=>{if(i>=lo&&i<=hi){mode==="select"?n.add(q.id):n.delete(q.id);}});
+      return n;
+    });
+  }
+  function onMouseUp(){dragRef.current.active=false;}
+
   function save() {
     if(!name.trim())return alert("Exam name required.");
-    if(sel.length===0)return alert("Select at least one question.");
-    onSave({id:initial?.id||genId(),name:name.trim(),duration:dur,questionIds:sel,createdAt:initial?.createdAt||new Date().toISOString().slice(0,10)});
+    if(sel.size===0)return alert("Select at least one question.");
+    onSave({id:initial?.id||genId(),name:name.trim(),duration:dur,questionIds:[...sel],createdAt:initial?.createdAt||new Date().toISOString().slice(0,10)});
   }
+
+  const allPoolSelected=pool.length>0&&pool.every(q=>sel.has(q.id));
+
   return (
-    <div className="ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="mo" style={{maxWidth:920,maxHeight:"94vh"}}>
+    <div className="ov" onClick={e=>e.target===e.currentTarget&&onClose()} onMouseUp={onMouseUp}>
+      <div className="mo" style={{maxWidth:920,maxHeight:"94vh"}} onMouseUp={onMouseUp}>
         <div className="mh"><span>{initial?"Edit Exam":"New Exam"}</span><button className="ib" onClick={onClose}>{Ic.x}</button></div>
         <div className="mb" style={{gap:10}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 150px",gap:10}}>
@@ -572,9 +607,15 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
           </div>
           <div className="bl">
             <div className="card">
-              <div className="ch">Question Pool ({pool.length})
-                <input placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}
-                  style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:3,padding:"3px 7px",color:"#fff",fontSize:10.5,width:130,fontFamily:"inherit"}}/>
+              <div className="ch" style={{gap:8}}>
+                <span>Question Pool ({pool.length})</span>
+                <div style={{display:"flex",gap:6,marginLeft:"auto",alignItems:"center"}}>
+                  <button onClick={selAll} style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:3,padding:"3px 8px",color:"#fff",fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:"pointer"}}>
+                    {allPoolSelected?"Deselect all":"Select all"}
+                  </button>
+                  <input placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}
+                    style={{background:"rgba(255,255,255,.15)",border:"none",borderRadius:3,padding:"3px 7px",color:"#fff",fontSize:10.5,width:120,fontFamily:"'DM Sans',sans-serif"}}/>
+                </div>
               </div>
               {allTags.length>0&&(
                 <div style={{padding:"7px 10px",display:"flex",gap:4,flexWrap:"wrap",borderBottom:"1px solid var(--border)"}}>
@@ -582,16 +623,19 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
                   {allTags.map(t=><button key={t} className={`tc${tagF===t?" on":""}`} onClick={()=>setTagF(tagF===t?null:t)}>{t}</button>)}
                 </div>
               )}
-              <div className="bpool">
-                {pool.map(q=>{
-                  const inS=sel.includes(q.id);
+              <div className="bpool" ref={poolRef} style={{userSelect:"none"}} onMouseLeave={()=>{dragRef.current.active=false;}}>
+                {pool.map((q,i)=>{
+                  const inS=sel.has(q.id);
                   return (
-                    <div key={q.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 11px",borderBottom:"1px solid var(--border)",fontSize:12,cursor:"pointer",background:inS?"var(--gb)":"#fff",transition:"background .1s"}}
+                    <div key={q.id}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"8px 11px",borderBottom:"1px solid var(--border)",fontSize:12,cursor:"pointer",background:inS?"var(--gb)":"#fff",transition:"background .05s"}}
+                      onMouseDown={e=>onMouseDown(e,q.id,i)}
+                      onMouseEnter={()=>onMouseEnter(q.id,i)}
                       onClick={()=>toggle(q.id)}>
-                      <div style={{width:16,height:16,borderRadius:3,border:`1.5px solid ${inS?"var(--green)":"var(--border)"}`,background:inS?"var(--green)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff"}}>
+                      <div style={{width:16,height:16,borderRadius:3,border:`1.5px solid ${inS?"var(--green)":"var(--border)"}`,background:inS?"var(--green)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",pointerEvents:"none"}}>
                         {inS&&Ic.check}
                       </div>
-                      <span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:inS?"var(--green)":"var(--text)"}}>{q.stem}</span>
+                      <span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:inS?"var(--green)":"var(--text)",pointerEvents:"none"}}>{q.stem}</span>
                     </div>
                   );
                 })}
@@ -599,10 +643,10 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
               </div>
             </div>
             <div className="card">
-              <div className="ch">Selected ({sel.length})</div>
+              <div className="ch">Selected ({sel.size})</div>
               <div className="bsel">
-                {sel.length===0?<div className="em"><div className="t" style={{fontSize:13}}>None selected</div><p>Click questions from the pool</p></div>
-                  :sel.map((id,i)=>{const q=questions.find(x=>x.id===id);if(!q)return null;return(
+                {sel.size===0?<div className="em"><div className="t" style={{fontSize:13}}>None selected</div><p>Click or drag to select questions</p></div>
+                  :[...sel].map((id,i)=>{const q=questions.find(x=>x.id===id);if(!q)return null;return(
                     <div key={id} className="si">
                       <span className="sn">{i+1}</span>
                       <span className="ss">{q.stem}</span>
@@ -714,6 +758,8 @@ function AdminQ({ questions, setQuestions }) {
 function AdminEx({ questions, exams, setExams }) {
   const [showB,setShowB]=useState(false);
   const [editEx,setEditEx]=useState(null);
+  const [genLoading,setGenLoading]=useState(false);
+
   function saveEx(ex){
     dbSaveExam(ex)
       .then(saved=>{
@@ -729,9 +775,50 @@ function AdminEx({ questions, exams, setExams }) {
       .then(()=>setExams(prev=>prev.filter(e=>e.id!==id)))
       .catch(e=>alert("Delete failed: "+e.message));
   }
+
+  function generateFinalMock() {
+    if(questions.length===0){alert("No questions in bank.");return;}
+    setGenLoading(true);
+    // Group questions by LO tag (tags starting with "LO-")
+    const byLO={};
+    questions.forEach(q=>{
+      const lo=q.tags.find(t=>t.match(/^LO-/i));
+      const key=lo||"untagged";
+      if(!byLO[key])byLO[key]=[];
+      byLO[key].push(q);
+    });
+    // Pick up to 2 random questions per LO, shuffle within each LO first
+    const picked=[];
+    Object.values(byLO).forEach(qs=>{
+      const shuffled=shuffle(qs);
+      picked.push(...shuffled.slice(0,2));
+    });
+    // Shuffle the full selection and cap at 120
+    const final=shuffle(picked).slice(0,120);
+    if(final.length===0){alert("Could not generate mock — check questions have LO tags.");setGenLoading(false);return;}
+    const exam={
+      id:genId(),
+      name:`Final Mock — ${new Date().toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"})}`,
+      duration:150,
+      questionIds:final.map(q=>q.id),
+      createdAt:new Date().toISOString().slice(0,10),
+    };
+    dbSaveExam(exam)
+      .then(saved=>{setExams(prev=>[saved,...prev]);alert(`Final Mock generated: ${final.length} questions across ${Object.keys(byLO).length} LOs.`);})
+      .catch(e=>alert("Save failed: "+e.message))
+      .finally(()=>setGenLoading(false));
+  }
   return (
     <div style={{display:"flex",flexDirection:"column",gap:13}}>
-      <div><button className="btn ba" onClick={()=>{setEditEx(null);setShowB(true);}}>{Ic.plus} New Exam</button></div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <button className="btn ba" onClick={()=>{setEditEx(null);setShowB(true);}}>{Ic.plus} New Exam</button>
+        <button className="btn bt" onClick={generateFinalMock} disabled={genLoading||questions.length===0}>
+          {genLoading?"Generating…":"⚡ Generate Final Mock"}
+        </button>
+        <span style={{fontSize:11,color:"var(--muted)",alignSelf:"center",marginLeft:4}}>
+          Up to 2 questions per LO, capped at 120, shuffled
+        </span>
+      </div>
       <div className="card">
         <div className="ch">Saved Exams ({exams.length})</div>
         <div className="qth ecc"><span>#</span><span>Name</span><span>Questions</span><span>Duration</span><span></span></div>
@@ -944,21 +1031,98 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RESULTS
+// RESULTS — Analytics + Answer Review
 // ─────────────────────────────────────────────────────────────────────────────
 function Results({ questions, answers, flags, onReturn, onLogout }) {
+  const [view,setView]=useState("analytics"); // "analytics" | "review"
+
+  // ── Core stats ──
+  const total=questions.length;
   const correct=questions.filter(q=>answers[q.id]===q.answer).length;
+  const incorrect=questions.filter(q=>answers[q.id]&&answers[q.id]!==q.answer).length;
   const unanswered=questions.filter(q=>!answers[q.id]).length;
-  const pct=Math.round((correct/questions.length)*100);
-  return (
+  const pct=total>0?Math.round((correct/total)*100):0;
+  const flagCount=Object.values(flags).filter(Boolean).length;
+
+  // ── Difficulty breakdown ──
+  function getDiff(q){const t=q.tags.find(t=>t.startsWith("difficulty-"));return t?t.split("-")[1]:"?";}
+  const diffStats={};
+  questions.forEach(q=>{
+    const d=getDiff(q);
+    if(!diffStats[d])diffStats[d]={total:0,correct:0};
+    diffStats[d].total++;
+    if(answers[q.id]===q.answer)diffStats[d].correct++;
+  });
+
+  // ── PBL breakdown ──
+  const pblStats={};
+  questions.forEach(q=>{
+    const pbl=q.tags.find(t=>t.match(/^PBL-/i))||"Untagged";
+    if(!pblStats[pbl])pblStats[pbl]={total:0,correct:0};
+    pblStats[pbl].total++;
+    if(answers[q.id]===q.answer)pblStats[pbl].correct++;
+  });
+  const pblSorted=Object.entries(pblStats).sort((a,b)=>{
+    const pa=a[1].correct/a[1].total; const pb=b[1].correct/b[1].total;
+    return pa-pb; // worst first
+  });
+
+  // ── LO breakdown ──
+  const loStats={};
+  questions.forEach(q=>{
+    const lo=q.tags.find(t=>t.match(/^LO-/i))||"Untagged";
+    if(!loStats[lo])loStats[lo]={total:0,correct:0};
+    loStats[lo].total++;
+    if(answers[q.id]===q.answer)loStats[lo].correct++;
+  });
+  const loSorted=Object.entries(loStats).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total));
+
+  // ── Topic tag breakdown (non-PBL, non-LO, non-difficulty) ──
+  const topicStats={};
+  questions.forEach(q=>{
+    q.tags.filter(t=>!t.match(/^PBL-/i)&&!t.match(/^LO-/i)&&!t.startsWith("difficulty-")).forEach(t=>{
+      if(!topicStats[t])topicStats[t]={total:0,correct:0};
+      topicStats[t].total++;
+      if(answers[q.id]===q.answer)topicStats[t].correct++;
+    });
+  });
+  const topicSorted=Object.entries(topicStats).filter(([,v])=>v.total>=2).sort((a,b)=>(a[1].correct/a[1].total)-(b[1].correct/b[1].total));
+
+  // ── Weak spots (below 60%) ──
+  const weakPBL=pblSorted.filter(([,v])=>v.correct/v.total<0.6);
+  const weakLO=loSorted.filter(([,v])=>v.correct/v.total<0.6&&v.total>=1);
+
+  // ── Helper: coloured bar ──
+  function Bar({pct,color}){
+    const c=color||(pct>=70?"var(--green)":pct>=50?"var(--amber)":"var(--wrong)");
+    return <div style={{height:8,borderRadius:4,background:"var(--border)",overflow:"hidden",flex:1}}>
+      <div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:4,transition:"width .4s"}}/>
+    </div>;
+  }
+
+  function StatRow({label,correct,total}){
+    const p=total>0?Math.round(correct/total*100):0;
+    return <div style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:"1px solid var(--border)"}}>
+      <span style={{fontSize:12,color:"var(--text)",flex:"0 0 160px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+      <Bar pct={p}/>
+      <span style={{fontSize:12,fontWeight:700,color:"var(--text)",minWidth:48,textAlign:"right"}}>{correct}/{total}</span>
+      <span style={{fontSize:11,color:"var(--muted)",minWidth:36,textAlign:"right"}}>{p}%</span>
+    </div>;
+  }
+
+  const avgDiff=()=>{
+    const nums=questions.map(q=>parseInt(getDiff(q))).filter(n=>!isNaN(n));
+    if(!nums.length)return "—";
+    return (nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(1);
+  };
+
+  // ── ANSWER REVIEW (existing behaviour) ──
+  if(view==="review") return (
     <div className="rw">
       <style>{CSS}</style>
-      <div style={{background:"var(--td)",color:"#fff",padding:"11px 22px",fontSize:10.5,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>Exam Review — Results</div>
-      <div className="rb">
-        <div className="rs"><div className="v">{correct}/{questions.length}</div><div className="l">Score</div></div>
-        <div className="rs"><div className="v">{pct}%</div><div className="l">Percentage</div></div>
-        <div className="rs"><div className="v">{unanswered}</div><div className="l">Unanswered</div></div>
-        <div className="rs"><div className="v">{Object.values(flags).filter(Boolean).length}</div><div className="l">Flagged</div></div>
+      <div style={{background:"var(--td)",color:"#fff",padding:"11px 22px",display:"flex",alignItems:"center",gap:12}}>
+        <button className="ib" style={{color:"rgba(255,255,255,.7)"}} onClick={()=>setView("analytics")}>{Ic.prev}</button>
+        <span style={{fontSize:10.5,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>Answer Review</span>
       </div>
       <div style={{overflowY:"auto",flex:1}}>
         <div className="rl">
@@ -971,6 +1135,9 @@ function Results({ questions, answers, flags, onReturn, onLogout }) {
                   <span className="riqn">Q{i+1}</span>
                   <span className={`rst ${st}`}>{st}</span>
                   {flags[q.id]&&<span style={{fontSize:9.5,color:"var(--amber)",fontWeight:700}}>⚑ Flagged</span>}
+                  <span style={{marginLeft:"auto",display:"flex",gap:4,flexWrap:"wrap"}}>
+                    {q.tags.map(t=><span key={t} className="qtag">{t}</span>)}
+                  </span>
                 </div>
                 <div className="ristem">{q.stem}</div>
                 <div className="riopts">
@@ -994,9 +1161,102 @@ function Results({ questions, answers, flags, onReturn, onLogout }) {
           })}
         </div>
       </div>
-      <div style={{padding:"18px",display:"flex",justifyContent:"center",gap:10,borderTop:"1px solid var(--border)"}}>
+      <div style={{padding:"16px",display:"flex",justifyContent:"center",gap:10,borderTop:"1px solid var(--border)"}}>
+        <button className="btn bw" onClick={()=>setView("analytics")}>← Back to Analytics</button>
         <button className="btn bw" onClick={onLogout}>{Ic.logout} Log Out</button>
-        <button className="btn ba" onClick={onReturn}>Review Answers</button>
+      </div>
+    </div>
+  );
+
+  // ── ANALYTICS SCREEN ──
+  return (
+    <div className="rw">
+      <style>{CSS}</style>
+      <div style={{background:"var(--td)",color:"#fff",padding:"11px 22px",fontSize:10.5,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>
+        Exam Results — Performance Analysis
+      </div>
+
+      {/* Score banner */}
+      <div className="rb" style={{flexWrap:"wrap",gap:24}}>
+        <div className="rs"><div className="v">{correct}/{total}</div><div className="l">Score</div></div>
+        <div className="rs"><div className="v">{pct}%</div><div className="l">Percentage</div></div>
+        <div className="rs"><div className="v">{incorrect}</div><div className="l">Incorrect</div></div>
+        <div className="rs"><div className="v">{unanswered}</div><div className="l">Unanswered</div></div>
+        <div className="rs"><div className="v">{flagCount}</div><div className="l">Flagged</div></div>
+        <div className="rs"><div className="v">{avgDiff()}</div><div className="l">Avg Difficulty</div></div>
+      </div>
+
+      <div style={{overflowY:"auto",flex:1,padding:"20px",display:"flex",flexDirection:"column",gap:16,maxWidth:960,margin:"0 auto",width:"100%"}}>
+
+        {/* Weak spots callout */}
+        {(weakPBL.length>0||weakLO.length>0)&&(
+          <div style={{background:"#fff8f0",border:"1.5px solid #f5a623",borderRadius:6,padding:"14px 18px"}}>
+            <div style={{fontSize:11,fontWeight:800,textTransform:"uppercase",letterSpacing:".07em",color:"#b07800",marginBottom:10}}>⚠ Priority Revision Areas (below 60%)</div>
+            <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
+              {weakPBL.length>0&&<div>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",marginBottom:6}}>PBL Blocks</div>
+                {weakPBL.map(([k,v])=><div key={k} style={{fontSize:12,color:"var(--text)",marginBottom:3}}>
+                  <strong>{k}</strong> — {Math.round(v.correct/v.total*100)}% ({v.correct}/{v.total})
+                </div>)}
+              </div>}
+              {weakLO.length>0&&<div>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",marginBottom:6}}>Learning Objectives</div>
+                {weakLO.slice(0,10).map(([k,v])=><div key={k} style={{fontSize:12,color:"var(--text)",marginBottom:3}}>
+                  <strong>{k}</strong> — {Math.round(v.correct/v.total*100)}% ({v.correct}/{v.total})
+                </div>)}
+                {weakLO.length>10&&<div style={{fontSize:11,color:"var(--muted)"}}>+{weakLO.length-10} more</div>}
+              </div>}
+            </div>
+          </div>
+        )}
+
+        {/* Difficulty breakdown */}
+        <div className="card">
+          <div className="ch">Performance by Difficulty</div>
+          <div style={{padding:"10px 16px"}}>
+            {["1","2","3"].map(d=>{
+              const s=diffStats[d];if(!s)return null;
+              const p=Math.round(s.correct/s.total*100);
+              return <StatRow key={d} label={`Difficulty ${d}`} correct={s.correct} total={s.total}/>;
+            })}
+            {!["1","2","3"].some(d=>diffStats[d])&&<div style={{fontSize:12,color:"var(--muted)",padding:"8px 0"}}>No difficulty tags found.</div>}
+          </div>
+        </div>
+
+        {/* PBL breakdown */}
+        {pblSorted.length>0&&(
+          <div className="card">
+            <div className="ch">Performance by PBL Block <span style={{fontWeight:400,fontSize:10,opacity:.7}}>(worst → best)</span></div>
+            <div style={{padding:"10px 16px"}}>
+              {pblSorted.map(([k,v])=><StatRow key={k} label={k} correct={v.correct} total={v.total}/>)}
+            </div>
+          </div>
+        )}
+
+        {/* LO breakdown */}
+        {loSorted.length>0&&(
+          <div className="card">
+            <div className="ch">Performance by Learning Objective <span style={{fontWeight:400,fontSize:10,opacity:.7}}>(worst → best)</span></div>
+            <div style={{padding:"10px 16px"}}>
+              {loSorted.map(([k,v])=><StatRow key={k} label={k} correct={v.correct} total={v.total}/>)}
+            </div>
+          </div>
+        )}
+
+        {/* Topic tags */}
+        {topicSorted.length>0&&(
+          <div className="card">
+            <div className="ch">Performance by Topic <span style={{fontWeight:400,fontSize:10,opacity:.7}}>(worst → best, min 2 questions)</span></div>
+            <div style={{padding:"10px 16px"}}>
+              {topicSorted.map(([k,v])=><StatRow key={k} label={k} correct={v.correct} total={v.total}/>)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{padding:"16px",display:"flex",justifyContent:"center",gap:10,borderTop:"1px solid var(--border)",flexShrink:0}}>
+        <button className="btn bw" onClick={onLogout}>{Ic.logout} Log Out</button>
+        <button className="btn ba" onClick={()=>setView("review")}>Review Answers →</button>
       </div>
     </div>
   );
