@@ -83,6 +83,74 @@ function fmt(s) {
 migrateUsers();
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SUPABASE CLIENT
+// ─────────────────────────────────────────────────────────────────────────────
+const SB_URL = "https://cxvoqonhsfqemgzikwbr.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dm9xb25oc2ZxZW1nemlrd2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzgxMDgsImV4cCI6MjA4OTc1NDEwOH0.59JLv6iWRSh95TNDHfNemoO5Ou4odsUm84JASMH6-mc";
+
+async function sbFetch(path, opts={}) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: {
+      "apikey": SB_KEY,
+      "Authorization": `Bearer ${SB_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation",
+      ...(opts.headers||{}),
+    },
+  });
+  if (!res.ok) { const e=await res.text(); throw new Error(e); }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// Load all questions from Supabase — each row has {id, data}
+async function dbLoadQuestions() {
+  const rows = await sbFetch("questions?select=id,data&order=created_at.asc");
+  return rows.map(r => ({ ...r.data, _dbId: r.id }));
+}
+
+// Load all exams from Supabase
+async function dbLoadExams() {
+  const rows = await sbFetch("exams?select=id,data&order=created_at.asc");
+  return rows.map(r => ({ ...r.data, _dbId: r.id }));
+}
+
+// Upsert a question — insert if new, update if exists
+async function dbSaveQuestion(q) {
+  const { _dbId, ...data } = q;
+  if (_dbId) {
+    await sbFetch(`questions?id=eq.${_dbId}`, { method:"PATCH", body: JSON.stringify({ data }) });
+    return { ...data, _dbId };
+  } else {
+    const rows = await sbFetch("questions", { method:"POST", body: JSON.stringify({ data }) });
+    return { ...data, _dbId: rows[0]?.id };
+  }
+}
+
+// Delete a question
+async function dbDeleteQuestion(q) {
+  if (q._dbId) await sbFetch(`questions?id=eq.${q._dbId}`, { method:"DELETE" });
+}
+
+// Upsert an exam
+async function dbSaveExam(ex) {
+  const { _dbId, ...data } = ex;
+  if (_dbId) {
+    await sbFetch(`exams?id=eq.${_dbId}`, { method:"PATCH", body: JSON.stringify({ data }) });
+    return { ...data, _dbId };
+  } else {
+    const rows = await sbFetch("exams", { method:"POST", body: JSON.stringify({ data }) });
+    return { ...data, _dbId: rows[0]?.id };
+  }
+}
+
+// Delete an exam
+async function dbDeleteExam(ex) {
+  if (ex._dbId) await sbFetch(`exams?id=eq.${ex._dbId}`, { method:"DELETE" });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ICONS
 // ─────────────────────────────────────────────────────────────────────────────
 const Ic = {
@@ -563,12 +631,37 @@ function AdminQ({ questions, setQuestions }) {
   const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort();
   const filtered=tagF?questions.filter(q=>q.tags.includes(tagF)):questions;
   function saveQ(q){
-    setQuestions(prev=>{const ex=prev.find(p=>p.id===q.id);const next=ex?prev.map(p=>p.id===q.id?q:p):[q,...prev];lsSet(SK.questions,next);return next;});
-    setShowAdd(false);setEditing(null);
+    dbSaveQuestion(q)
+      .then(saved=>{
+        setQuestions(prev=>{const ex=prev.find(p=>p.id===saved.id);return ex?prev.map(p=>p.id===saved.id?saved:p):[saved,...prev];});
+        setShowAdd(false);setEditing(null);
+      })
+      .catch(e=>alert("Save failed: "+e.message));
   }
-  function delQ(id){if(!window.confirm("Delete question?"))return;setQuestions(prev=>{const n=prev.filter(q=>q.id!==id);lsSet(SK.questions,n);return n;});}
-  function expJSON(){const b=new Blob([JSON.stringify(questions,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`sba-${new Date().toISOString().slice(0,10)}.json`;a.click();}
-  function impJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(!Array.isArray(d))return alert("Expected array.");setQuestions(prev=>{const ids=new Set(prev.map(q=>q.id));const n=[...prev,...d.filter(q=>!ids.has(q.id))];lsSet(SK.questions,n);return n;});alert(`Imported ${d.length} questions.`);}catch{alert("Invalid JSON.");}};r.readAsText(file);e.target.value="";}
+  function delQ(id){
+    if(!window.confirm("Delete question?"))return;
+    const q=questions.find(x=>x.id===id);
+    dbDeleteQuestion(q)
+      .then(()=>setQuestions(prev=>prev.filter(q=>q.id!==id)))
+      .catch(e=>alert("Delete failed: "+e.message));
+  }
+  function expJSON(){const b=new Blob([JSON.stringify(questions.map(({_dbId,...q})=>q),null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`sba-${new Date().toISOString().slice(0,10)}.json`;a.click();}
+  function impJSON(e){
+    const file=e.target.files[0];if(!file)return;
+    const r=new FileReader();
+    r.onload=async ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        if(!Array.isArray(d))return alert("Expected array.");
+        const existingIds=new Set(questions.map(q=>q.id));
+        const newOnes=d.filter(q=>!existingIds.has(q.id));
+        const saved=await Promise.all(newOnes.map(q=>dbSaveQuestion(q)));
+        setQuestions(prev=>[...prev,...saved]);
+        alert(`Imported ${saved.length} questions.`);
+      }catch(err){alert("Import failed: "+err.message);}
+    };
+    r.readAsText(file);e.target.value="";
+  }
   const domains=[...new Set(questions.flatMap(q=>q.tags.filter(t=>!t.startsWith("difficulty"))))].length;
   return (
     <div style={{display:"flex",flexDirection:"column",gap:13}}>
@@ -621,8 +714,21 @@ function AdminQ({ questions, setQuestions }) {
 function AdminEx({ questions, exams, setExams }) {
   const [showB,setShowB]=useState(false);
   const [editEx,setEditEx]=useState(null);
-  function saveEx(ex){setExams(prev=>{const e=prev.find(x=>x.id===ex.id);const n=e?prev.map(x=>x.id===ex.id?ex:x):[ex,...prev];lsSet(SK.exams,n);return n;});setShowB(false);setEditEx(null);}
-  function delEx(id){if(!window.confirm("Delete exam?"))return;setExams(prev=>{const n=prev.filter(e=>e.id!==id);lsSet(SK.exams,n);return n;});}
+  function saveEx(ex){
+    dbSaveExam(ex)
+      .then(saved=>{
+        setExams(prev=>{const e=prev.find(x=>x.id===saved.id);return e?prev.map(x=>x.id===saved.id?saved:x):[saved,...prev];});
+        setShowB(false);setEditEx(null);
+      })
+      .catch(e=>alert("Save failed: "+e.message));
+  }
+  function delEx(id){
+    if(!window.confirm("Delete exam?"))return;
+    const ex=exams.find(x=>x.id===id);
+    dbDeleteExam(ex)
+      .then(()=>setExams(prev=>prev.filter(e=>e.id!==id)))
+      .catch(e=>alert("Delete failed: "+e.message));
+  }
   return (
     <div style={{display:"flex",flexDirection:"column",gap:13}}>
       <div><button className="btn ba" onClick={()=>{setEditEx(null);setShowB(true);}}>{Ic.plus} New Exam</button></div>
@@ -685,9 +791,18 @@ function AdminUsers({ exams }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminShell({ user, onLogout }) {
   const [tab,setTab]=useState("questions");
-  const [questions,setQuestions]=useState(()=>ls(SK.questions,DEMO_QUESTIONS));
-  const [exams,setExams]=useState(()=>ls(SK.exams,[]));
+  const [questions,setQuestions]=useState([]);
+  const [exams,setExams]=useState([]);
+  const [loading,setLoading]=useState(true);
   const tabs=[{id:"questions",label:"Question Bank",ic:Ic.bank},{id:"exams",label:"Exams",ic:Ic.exam},{id:"users",label:"Users",ic:Ic.shield}];
+
+  useEffect(()=>{
+    Promise.all([dbLoadQuestions(), dbLoadExams()])
+      .then(([qs,exs])=>{ setQuestions(qs); setExams(exs); })
+      .catch(e=>alert("Failed to load from database: "+e.message))
+      .finally(()=>setLoading(false));
+  },[]);
+
   return (
     <div className="ash">
       <style>{CSS}</style>
@@ -701,9 +816,18 @@ function AdminShell({ user, onLogout }) {
         </div>
       </div>
       <div className="a-body">
-        {tab==="questions"&&<AdminQ questions={questions} setQuestions={setQuestions}/>}
-        {tab==="exams"&&<AdminEx questions={questions} exams={exams} setExams={setExams}/>}
-        {tab==="users"&&<AdminUsers exams={exams}/>}
+        {loading
+          ? <div style={{display:"flex",alignItems:"center",justifyContent:"center",flex:1,fontSize:14,color:"var(--muted)",gap:10,paddingTop:60}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{animation:"spin 1s linear infinite"}}><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" opacity=".25"/><path d="M21 12a9 9 0 0 1-9 9"/></svg>
+              Loading from database…
+              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+            </div>
+          : <>
+              {tab==="questions"&&<AdminQ questions={questions} setQuestions={setQuestions}/>}
+              {tab==="exams"&&<AdminEx questions={questions} exams={exams} setExams={setExams}/>}
+              {tab==="users"&&<AdminUsers exams={exams}/>}
+            </>
+        }
       </div>
     </div>
   );
@@ -882,8 +1006,19 @@ function Results({ questions, answers, flags, onReturn, onLogout }) {
 // STUDENT LANDING
 // ─────────────────────────────────────────────────────────────────────────────
 function StudentLanding({ user, exam, onStart, onLogout }) {
-  const questions=ls(SK.questions,DEMO_QUESTIONS);
-  const examQs=exam.questionIds.map(id=>questions.find(q=>q.id===id)).filter(Boolean);
+  const [examQs,setExamQs]=useState([]);
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    dbLoadQuestions()
+      .then(qs=>{
+        const ordered=exam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
+        setExamQs(ordered);
+      })
+      .catch(e=>alert("Failed to load questions: "+e.message))
+      .finally(()=>setLoading(false));
+  },[]);
+
   return (
     <div className="sl-wrap">
       <style>{CSS}</style>
@@ -898,11 +1033,18 @@ function StudentLanding({ user, exam, onStart, onLogout }) {
         <div style={{background:"#fff",borderRadius:8,border:"1px solid var(--border)",padding:"34px 38px",maxWidth:440,width:"100%",boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
           <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:7}}>Your Exam</div>
           <h2 style={{fontSize:21,fontWeight:800,color:"var(--teal)",marginBottom:18}}>{exam.name}</h2>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:26}}>
-            <div className="sc"><div className="v">{examQs.length}</div><div className="l">Questions</div></div>
-            <div className="sc"><div className="v">{exam.duration}</div><div className="l">Minutes</div></div>
-          </div>
-          <button className="btn ba" style={{width:"100%",padding:"12px",fontSize:14}} onClick={()=>onStart(examQs,exam.duration*60)}>Begin Exam →</button>
+          {loading
+            ? <div style={{textAlign:"center",color:"var(--muted)",fontSize:13,padding:"20px 0"}}>Loading questions…</div>
+            : <>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:26}}>
+                  <div className="sc"><div className="v">{examQs.length}</div><div className="l">Questions</div></div>
+                  <div className="sc"><div className="v">{exam.duration}</div><div className="l">Minutes</div></div>
+                </div>
+                <button className="btn ba" style={{width:"100%",padding:"12px",fontSize:14}}
+                  disabled={examQs.length===0}
+                  onClick={()=>onStart(examQs,exam.duration*60)}>Begin Exam →</button>
+              </>
+          }
         </div>
       </div>
     </div>
@@ -913,16 +1055,27 @@ function StudentLanding({ user, exam, onStart, onLogout }) {
 // ROOT
 // ─────────────────────────────────────────────────────────────────────────────
 export default function App() {
-  // Restore session if tab is still open
   const existingSession = getSession();
   const [user,setUser]=useState(existingSession);
   const [screen,setScreen]=useState(existingSession?(existingSession.role==="admin"?"admin":"student"):"login");
   const [examQs,setExamQs]=useState([]);
   const [examTime,setExamTime]=useState(0);
   const [results,setResults]=useState(null);
+  const [studentExam,setStudentExam]=useState(null);
+  const [loadingExam,setLoadingExam]=useState(false);
+
+  // When a student logs in, load their assigned exam from Supabase
+  useEffect(()=>{
+    if(!user||user.role==="admin"||!user.assignedExam) return;
+    setLoadingExam(true);
+    dbLoadExams()
+      .then(exs=>{ const ex=exs.find(e=>e.id===user.assignedExam)||null; setStudentExam(ex); })
+      .catch(e=>alert("Failed to load exam: "+e.message))
+      .finally(()=>setLoadingExam(false));
+  },[user]);
 
   function login(u){setUser(u);setScreen(u.role==="admin"?"admin":"student");}
-  function logout(){clearSession();setUser(null);setScreen("login");setResults(null);}
+  function logout(){clearSession();setUser(null);setScreen("login");setResults(null);setStudentExam(null);}
   function startExam(qs,time){setExamQs(shuffle(qs));setExamTime(time);setScreen("exam");}
   function finish(a,f){setResults({a,f});setScreen("results");}
   function returnHome(){setResults(null);setScreen(user?.role==="admin"?"admin":"student");}
@@ -931,9 +1084,12 @@ export default function App() {
   if(screen==="admin") return <AdminShell user={user} onLogout={logout}/>;
 
   if(screen==="student") {
-    const exams=ls(SK.exams,[]);
-    const ex=user.assignedExam?exams.find(e=>e.id===user.assignedExam):null;
-    if(!ex) return (
+    if(loadingExam) return (
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",gap:10,fontSize:14,color:"var(--muted)"}}>
+        <style>{CSS}</style>Loading…
+      </div>
+    );
+    if(!studentExam) return (
       <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"var(--bg)",gap:14}}>
         <style>{CSS}</style>
         <div style={{fontSize:17,fontWeight:700,color:"var(--teal)"}}>No exam assigned</div>
@@ -941,7 +1097,7 @@ export default function App() {
         <button className="btn bw" onClick={logout}>Logout</button>
       </div>
     );
-    return <StudentLanding user={user} exam={ex} onStart={startExam} onLogout={logout}/>;
+    return <StudentLanding user={user} exam={studentExam} onStart={startExam} onLogout={logout}/>;
   }
 
   if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome}/>;
