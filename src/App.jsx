@@ -3,10 +3,8 @@ import { useState, useEffect, useRef } from "react";
 // ─────────────────────────────────────────────────────────────────────────────
 // STORAGE HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
-// Obfuscated storage keys — not self-describing
 const SK = { questions:"_ac_q7x", exams:"_ac_e3k", users:"_ac_u9m", attempts:"_ac_a2p" };
 
-// Simple deterministic hash — passwords stored and compared as hashes only
 function hashPw(str) {
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
@@ -16,24 +14,21 @@ function hashPw(str) {
   return h.toString(16).padStart(8,"0");
 }
 
-// Session token — random, lives in sessionStorage (clears on tab close)
 function makeToken() { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
 function getSession() { try { return JSON.parse(sessionStorage.getItem("_ac_tok")||"null"); } catch { return null; } }
 function setSession(u) { sessionStorage.setItem("_ac_tok", JSON.stringify({...u, tok:makeToken(), at:Date.now()})); }
 function clearSession() { sessionStorage.removeItem("_ac_tok"); }
 
-// Fisher-Yates shuffle — returns a new shuffled array
 function shuffle(arr) {
   const a=[...arr];
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a;
 }
 
-// Login rate limiter — max 5 attempts per username per 60s
 const RATE_WINDOW=60000; const MAX_ATTEMPTS=5;
-function checkRate(username) {
+function checkRate(uid) {
   try {
-    const key=`_ac_rl_${hashPw(username.toLowerCase())}`;
+    const key=`_ac_rl_${hashPw(uid.toLowerCase())}`;
     const raw=sessionStorage.getItem(key);
     const now=Date.now();
     const attempts=raw?JSON.parse(raw).filter(t=>now-t<RATE_WINDOW):[];
@@ -47,23 +42,21 @@ function checkRate(username) {
   } catch { return {blocked:false}; }
 }
 
-// Migrate any existing plain-text passwords to hashed on first load
 function migrateUsers() {
   const users=ls(SK.users, null);
   if(!users) {
-    // First run — store default admin with hashed password
-    lsSet(SK.users,[{username:"admin",passwordHash:hashPw("admin123"),role:"admin"}]);
+    lsSet(SK.users,[{uid:"ammodev",phx:hashPw("nicejobfindingthis"),role:"admin"}]);
     return;
   }
-  // If any user still has plain 'password' field, hash and migrate
-  const needsMigration=users.some(u=>u.password!==undefined);
+  const needsMigration=users.some(u=>u.password!==undefined||u.passwordHash!==undefined||u.username!==undefined);
   if(needsMigration){
     const migrated=users.map(u=>{
-      if(u.password!==undefined){
-        const {password,...rest}=u;
-        return {...rest,passwordHash:hashPw(password)};
-      }
-      return u;
+      const out={};
+      out.uid = u.uid || u.username || "";
+      out.phx = u.phx || u.passwordHash || (u.password ? hashPw(u.password) : hashPw("nicejobfindingthis"));
+      out.role = u.role || "student";
+      if(u.assignedExam !== undefined) out.assignedExam = u.assignedExam;
+      return out;
     });
     lsSet(SK.users,migrated);
   }
@@ -75,7 +68,7 @@ const DEMO_QUESTIONS = [
   { id:"dq3", stem:"A 45-year-old obese woman with a 5-year history of heartburn/regurgitation is on omeprazole 20 mg daily with partial relief. Endoscopy reveals salmon-coloured mucosa 3 cm above the GOJ; biopsy confirms intestinal metaplasia. What is the MOST appropriate next step?", options:{A:"Increase omeprazole to 40 mg BD and repeat endoscopy in 5 years",B:"Urgent surgical referral for oesophagectomy",C:"Endoscopic surveillance with biopsies every 2–3 years",D:"Immediate referral for endoscopic mucosal resection",E:"Cease omeprazole and trial H2 receptor antagonist"}, answer:"C", explanation:"Non-dysplastic Barrett's oesophagus is managed with high-dose PPI and endoscopic surveillance every 2–3 years per current guidelines.", tags:["upper GI","gastroenterology","difficulty-2"], dateAdded:"2026-03-21" },
 ];
 
-const DEFAULT_USERS = [{ username:"admin", passwordHash:hashPw("admin123"), role:"admin" }];
+const DEFAULT_USERS = [{ uid:"ammodev", phx:hashPw("nicejobfindingthis"), role:"admin" }];
 
 function ls(key, fallback) {
   try { const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; } catch { return fallback; }
@@ -369,8 +362,8 @@ function LoginPage({ onLogin }) {
     const rate=checkRate(un);
     if(rate.blocked){setLocked(true);setWait(rate.wait);setErr(`Too many attempts. Wait ${rate.wait}s.`);return;}
     const users=ls(SK.users,DEFAULT_USERS);
-    const m=users.find(u=>u.username.toLowerCase()===un.trim().toLowerCase()&&u.passwordHash===hashPw(pw));
-    if(!m){setErr("Incorrect username or password.");return;}
+    const m=users.find(u=>u.uid.toLowerCase()===un.trim().toLowerCase()&&u.phx===hashPw(pw));
+    if(!m){setErr("Incorrect credentials.");return;}
     setSession(m);
     onLogin(m);
   }
@@ -383,10 +376,10 @@ function LoginPage({ onLogin }) {
       <div className="lp-body">
         <div className="lp-card">
           <h2>Enter your login credentials</h2>
-          <div className="lp-f"><label>Username</label>
+          <div className="lp-f"><label>ID</label>
             <input value={un} onChange={e=>{setUn(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()} autoFocus/>
           </div>
-          <div className="lp-f"><label>Password</label>
+          <div className="lp-f"><label>Key</label>
             <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>
           {err&&<div className="lp-err">{err}</div>}
@@ -453,14 +446,14 @@ function QModal({ initial, onSave, onClose }) {
 function UModal({ onSave, onClose, exams }) {
   const [un,setUn]=useState(""); const [pw,setPw]=useState(""); const [role,setRole]=useState("student"); const [ae,setAe]=useState("");
   function save() {
-    if(!un.trim()||!pw.trim())return alert("Username and password required.");
-    onSave({username:un.trim(),passwordHash:hashPw(pw),role,assignedExam:role==="student"?ae:""});
+    if(!un.trim()||!pw.trim())return alert("ID and key required.");
+    onSave({uid:un.trim(),phx:hashPw(pw),role,assignedExam:role==="student"?ae:""});
   }
   return (
     <Modal title="Add Login" onClose={onClose}
       footer={<><button className="btn bw" onClick={onClose}>Cancel</button><button className="btn ba" onClick={save}>Create Login</button></>}>
-      <div className="fi"><label>Username</label><input value={un} onChange={e=>setUn(e.target.value)} placeholder="e.g. Mock1"/></div>
-      <div className="fi"><label>Password</label><input value={pw} onChange={e=>setPw(e.target.value)} placeholder="e.g. ILoveExams"/></div>
+      <div className="fi"><label>ID</label><input value={un} onChange={e=>setUn(e.target.value)} placeholder="e.g. Mock1"/></div>
+      <div className="fi"><label>Key</label><input value={pw} onChange={e=>setPw(e.target.value)} placeholder="e.g. ILoveExams"/></div>
       <div className="fi"><label>Role</label>
         <select value={role} onChange={e=>setRole(e.target.value)}>
           <option value="student">Student (exam only)</option>
@@ -661,8 +654,8 @@ function AdminEx({ questions, exams, setExams }) {
 function AdminUsers({ exams }) {
   const [users,setUsers]=useState(()=>ls(SK.users,DEFAULT_USERS));
   const [showAdd,setShowAdd]=useState(false);
-  function addU(u){const all=ls(SK.users,DEFAULT_USERS);if(all.find(x=>x.username.toLowerCase()===u.username.toLowerCase()))return alert("Username already exists.");const n=[...all,u];lsSet(SK.users,n);setUsers(n);setShowAdd(false);}
-  function delU(un){if(un==="admin"){alert("Cannot delete admin.");return;}if(!window.confirm(`Delete "${un}"?`))return;const n=users.filter(u=>u.username!==un);lsSet(SK.users,n);setUsers(n);}
+  function addU(u){const all=ls(SK.users,DEFAULT_USERS);if(all.find(x=>x.uid.toLowerCase()===u.uid.toLowerCase()))return alert("ID already exists.");const n=[...all,u];lsSet(SK.users,n);setUsers(n);setShowAdd(false);}
+  function delU(uid){if(uid==="ammodev"){alert("Cannot delete primary admin.");return;}if(!window.confirm(`Delete "${uid}"?`))return;const n=users.filter(u=>u.uid!==uid);lsSet(SK.users,n);setUsers(n);}
   return (
     <div style={{display:"flex",flexDirection:"column",gap:13}}>
       <div><button className="btn ba" onClick={()=>setShowAdd(true)}>{Ic.plus} Add Login</button></div>
@@ -670,11 +663,11 @@ function AdminUsers({ exams }) {
         <div className="ch">Active Logins ({users.length})</div>
         <div className="ug">
           {users.map(u=>{const ex=u.assignedExam?exams.find(e=>e.id===u.assignedExam):null;return(
-            <div key={u.username} className="uc">
+            <div key={u.uid} className="uc">
               <div className="uct">
-                <div className={`uav${u.role==="admin"?" adm":""}`}>{u.username[0].toUpperCase()}</div>
-                <div><div className="unm">{u.username}</div><span className={`urol ${u.role}`}>{u.role}</span></div>
-                <button className="ib dg" style={{marginLeft:"auto"}} onClick={()=>delU(u.username)}>{Ic.trash}</button>
+                <div className={`uav${u.role==="admin"?" adm":""}`}>{u.uid[0].toUpperCase()}</div>
+                <div><div className="unm">{u.uid}</div><span className={`urol ${u.role}`}>{u.role}</span></div>
+                <button className="ib dg" style={{marginLeft:"auto"}} onClick={()=>delU(u.uid)}>{Ic.trash}</button>
               </div>
               {u.role==="student"&&<div className="uex">{Ic.exam}{ex?ex.name:<em>No exam assigned</em>}</div>}
               <div style={{fontSize:11,color:"var(--muted)"}}>Password stored securely</div>
@@ -703,7 +696,7 @@ function AdminShell({ user, onLogout }) {
         <nav className="a-nav">
           {tabs.map(t=><button key={t.id} className={`a-nb${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.ic}{t.label}</button>)}
         </nav>
-        <div className="a-ui">{Ic.user}<strong>{user.username}</strong>
+        <div className="a-ui">{Ic.user}<strong>{user.uid}</strong>
           <button className="btn bg sm" style={{marginLeft:4}} onClick={onLogout}>{Ic.logout} Logout</button>
         </div>
       </div>
@@ -897,7 +890,7 @@ function StudentLanding({ user, exam, onStart, onLogout }) {
       <div className="sl-bar">
         <div className="a-logo"><strong>ammo</strong>/<em>assess</em></div>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>{user.username}</span>
+          <span style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>{user.uid}</span>
           <button className="btn bg sm" onClick={onLogout}>{Ic.logout} Logout</button>
         </div>
       </div>
@@ -951,7 +944,7 @@ export default function App() {
     return <StudentLanding user={user} exam={ex} onStart={startExam} onLogout={logout}/>;
   }
 
-  if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.username||""} onFinish={finish} onExit={returnHome}/>;
+  if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome}/>;
   if(screen==="results") return <Results questions={examQs} answers={results.a} flags={results.f} onReturn={returnHome} onLogout={logout}/>;
   return null;
 }
