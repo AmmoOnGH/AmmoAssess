@@ -202,11 +202,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 /* LOGIN */
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px;background:#001c2f}
 .lp-bg-fallback{position:absolute;inset:0;background:linear-gradient(135deg,#001c2f 0%,#002d45 40%,#001a2c 100%);z-index:0}
-.lp-bg{position:absolute;inset:0;background-image:url('/bg.jpg');background-size:cover;background-position:center;opacity:.35;filter:saturate(1.1);z-index:1}
-.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.97);border-radius:6px;width:100%;max-width:440px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}.lp-card-hdr{background:#001c2f;padding:16px 24px}
-.lp-logo{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px;font-family:'DM Sans',sans-serif}
-.lp-logo strong{font-family:'PT Mono',monospace;font-weight:400;letter-spacing:-.5px}
-.lp-logo em{font-style:normal;color:#68e348;font-family:'DM Sans',sans-serif}
+.lp-bg{position:absolute;inset:0;background-image:url('/bg.jpg');background-size:cover;background-position:center;opacity:.9;filter:saturate(1.1);z-index:1}
+.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.97);border-radius:0;width:100%;max-width:520px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}.lp-card-hdr{background:#001c2f;padding:16px 24px}
+.lp-logo{font-size:22px;font-weight:400;color:#fff;font-family:'PT Mono',monospace}
+.lp-logo em{font-style:normal;color:#68e348}
+.lp-ver{position:fixed;top:12px;right:16px;font-size:11px;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;z-index:10;letter-spacing:.04em}
 .lp-card-body{padding:28px 28px 20px}
 .lp-card-body h2{font-size:17px;font-weight:700;color:var(--text);margin-bottom:20px}
 .lp-f{display:flex;flex-direction:column;gap:4px;margin-bottom:13px}
@@ -439,11 +439,12 @@ function LoginPage({ onLogin }) {
   return (
     <div className="lp">
       <style>{CSS}</style>
+      <div className="lp-ver">p1b-1.13</div>
       <div className="lp-bg-fallback"/>
       <div className="lp-bg"/>
       <div className="lp-card">
         <div className="lp-card-hdr">
-          <div className="lp-logo"><strong>ammo</strong>/<em>assess</em></div>
+          <div className="lp-logo">ammo/<em>assess</em></div>
         </div>
         <div className="lp-card-body">
           <h2>Enter your login credentials</h2>
