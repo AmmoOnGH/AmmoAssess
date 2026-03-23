@@ -382,7 +382,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
 /* Stem panel */
 .sp{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.shd{background:#004f6e;color:#fff;font-size:9.5px;font-weight:700;padding:12px 16px;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0}
+.shd{background:#004f6e;color:#fff;font-size:9.5px;font-weight:700;padding:8px 16px;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0}
 .sbody{flex:1;overflow-y:auto;padding:24px 28px}
 .stxt{font-size:14.5px;line-height:1.78;color:var(--text)}
 
@@ -390,9 +390,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
 .ahd{background:#004f6e;color:#fff;font-size:9.5px;font-weight:700;padding:7px 13px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .mb2{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.6)}
-.fsq{width:80px;height:80px;background:rgba(255,255,255,.08);border:1px solid #000;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.9);transition:all .15s;flex-shrink:0}
-.fsq:hover{background:rgba(255,255,255,.18)}
-.fsq.fl{background:#004f6e;border-color:#000;color:#fff}
+.fsq{width:65px;height:65px;background:#fff;border:2px solid #004f6e;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#004f6e;transition:all .15s;flex-shrink:0}
+.fsq:hover{background:#e8f0f4}
+.fsq.fl{background:#004f6e;border-color:#004f6e;color:#fff}
 .flag-row{padding:10px 13px 6px;display:flex;justify-content:flex-end;flex-shrink:0}
 .ab2{flex:1;overflow-y:auto;padding:8px 13px 13px;display:flex;flex-direction:column;gap:7px}
 .ob{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:#fff;border:2px solid #32673f;border-radius:4px;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:13.5px;line-height:1.5;color:var(--text);transition:all .12s;width:100%}
@@ -403,6 +403,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .ob.inc{background:var(--wb);border-color:var(--wrong);color:var(--wrong)}
 .olt{font-weight:700;min-width:16px;flex-shrink:0}
 .oic{margin-left:auto;flex-shrink:0;padding-top:2px}
+
+/* Calculator overlay */
+.calc-overlay{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:500;background:#1a2a36;border:1px solid #2a4a5e;border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,.5);width:340px;font-family:'DM Sans',sans-serif}
+.calc-display{background:#0d1e28;padding:10px 14px;border-radius:6px 6px 0 0;display:flex;align-items:center;gap:8px}
+.calc-expr{flex:1;font-size:15px;color:#e0eaf0;font-family:'PT Mono',monospace;letter-spacing:.04em;min-height:22px;word-break:break-all}
+.calc-eq{width:36px;height:36px;background:#004f6e;border:none;border-radius:4px;color:#fff;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.calc-eq:hover{background:#006a94}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:10px}
+.cb{height:44px;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
+.cb.num{background:#253a48;color:#e0eaf0}.cb.num:hover{background:#2e4a5c}
+.cb.op{background:#004f6e;color:#fff}.cb.op:hover{background:#006080}
+.cb.fn{background:#1e3040;color:#8ab4c8;font-size:12px}.cb.fn:hover{background:#28404f}
+.cb.wide{grid-column:span 2}
 
 /* RESULTS */
 .rw{min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
@@ -1051,7 +1064,39 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
   const [flags,setFlags]=useState({});
   const [tLeft,setTLeft]=useState(totalTime);
   const [amberMsg,setAmberMsg]=useState(`Exam time: ${Math.round(totalTime/60)} minutes`);
+  const [showCalc,setShowCalc]=useState(false);
+  const [calcExpr,setCalcExpr]=useState("");
   const timerR=useRef(); const amberR=useRef();
+
+  function calcPress(val) {
+    if(val==="C"){ setCalcExpr(""); return; }
+    if(val==="⌫"){ setCalcExpr(e=>e.slice(0,-1)); return; }
+    if(val==="="||val==="Enter"){
+      try {
+        // Safe eval: only allow digits, operators, parens, dot, spaces
+        const safe=calcExpr.replace(/[^0-9+\-*/.()% ]/g,"");
+        // Replace % with /100
+        const result=Function('"use strict";return('+safe.replace(/%/g,"/100")+")")();
+        const rounded=parseFloat(result.toFixed(10)).toString();
+        setCalcExpr(rounded);
+      } catch { setCalcExpr("Error"); }
+      return;
+    }
+    setCalcExpr(e=>(e==="Error"?"":e)+val);
+  }
+
+  // Keyboard support for calculator
+  useEffect(()=>{
+    if(!showCalc) return;
+    function onKey(e){
+      if(e.key==="Escape"){setShowCalc(false);return;}
+      if(e.key==="Enter"||e.key==="="){ calcPress("="); return; }
+      if(e.key==="Backspace"){ calcPress("⌫"); return; }
+      if(/^[0-9+\-*/.()%]$/.test(e.key)){ calcPress(e.key); }
+    }
+    window.addEventListener("keydown",onKey);
+    return()=>window.removeEventListener("keydown",onKey);
+  },[showCalc,calcExpr]);
 
   useEffect(()=>{
     amberR.current=setTimeout(()=>setAmberMsg(null),30000);
@@ -1086,7 +1131,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
           {Ic.finish}<span>Finish</span>
         </button>
         <div className="ts"/>
-        <button className="tbb">{Ic.calc}<span>Calculator</span></button>
+        <button className="tbb" onClick={()=>setShowCalc(s=>!s)}>{Ic.calc}<span>Calculator</span></button>
         <div className="ts"/>
         <button className="tbb">{Ic.colour}<span>Colour</span></button>
         <div className="ts"/>
@@ -1102,6 +1147,36 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
       </div>
 
       {amberMsg&&<div className="ab">{amberMsg}</div>}
+
+      {/* Calculator overlay */}
+      {showCalc&&(
+        <div className="calc-overlay">
+          <div className="calc-display">
+            <span className="calc-expr">{calcExpr||<span style={{opacity:.35}}>0</span>}</span>
+            <button className="calc-eq" onClick={()=>calcPress("=")}>=</button>
+          </div>
+          <div className="calc-grid">
+            {[
+              ["C","⌫","%","÷"],
+              ["7","8","9","×"],
+              ["4","5","6","−"],
+              ["1","2","3","+"],
+              ["0",".","(",")",],
+            ].map((row,ri)=>row.map((k,ki)=>{
+              const isOp=["÷","×","−","+","%"].includes(k);
+              const isFn=["C","⌫","(",")"].includes(k);
+              const realVal=k==="÷"?"/":k==="×"?"*":k==="−"?"-":k;
+              return(
+                <button key={ri+"-"+ki}
+                  className={`cb ${isFn?"fn":isOp?"op":"num"}`}
+                  onClick={()=>calcPress(realVal)}>
+                  {k}
+                </button>
+              );
+            }))}
+          </div>
+        </div>
+      )}
 
       <div className="eb" style={{flex:1,overflow:"hidden",display:"grid"}}>
         {/* Navigator */}
