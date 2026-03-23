@@ -150,6 +150,37 @@ async function dbDeleteExam(ex) {
   if (ex._dbId) await sbFetch(`exams?id=eq.${ex._dbId}`, { method:"DELETE" });
 }
 
+// ── User helpers ──
+async function dbLoadUsers() {
+  const rows = await sbFetch("users?select=id,data&order=created_at.asc");
+  return rows.map(r => ({ ...r.data, _dbId: r.id }));
+}
+
+async function dbSaveUser(u) {
+  const { _dbId, ...data } = u;
+  if (_dbId) {
+    await sbFetch(`users?id=eq.${_dbId}`, { method:"PATCH", body: JSON.stringify({ data }) });
+    return { ...data, _dbId };
+  } else {
+    const rows = await sbFetch("users", { method:"POST", body: JSON.stringify({ data }) });
+    return { ...data, _dbId: rows[0]?.id };
+  }
+}
+
+async function dbDeleteUser(u) {
+  if (u._dbId) await sbFetch(`users?id=eq.${u._dbId}`, { method:"DELETE" });
+}
+
+// Seed the default admin if the users table is empty
+async function dbSeedAdmin() {
+  try {
+    const existing = await dbLoadUsers();
+    if (existing.length === 0) {
+      await dbSaveUser({ uid:"ammodev", phx:hashPw("nicejobfindingthis"), role:"admin" });
+    }
+  } catch(e) { console.warn("Could not seed admin:", e.message); }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ICONS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -433,8 +464,8 @@ function Modal({ title, onClose, children, footer, wide }) {
 function LoginPage({ onLogin }) {
   const [un,setUn]=useState(""); const [pw,setPw]=useState("");
   const [err,setErr]=useState(""); const [locked,setLocked]=useState(false); const [wait,setWait]=useState(0);
+  const [loading,setLoading]=useState(false);
 
-  // Countdown timer when locked
   useEffect(()=>{
     if(!locked) return;
     const t=setInterval(()=>{
@@ -443,15 +474,29 @@ function LoginPage({ onLogin }) {
     return()=>clearInterval(t);
   },[locked]);
 
-  function go() {
-    if(locked) return;
+  async function go() {
+    if(locked||loading) return;
     const rate=checkRate(un);
     if(rate.blocked){setLocked(true);setWait(rate.wait);setErr(`Too many attempts. Wait ${rate.wait}s.`);return;}
-    const users=ls(SK.users,DEFAULT_USERS);
-    const m=users.find(u=>u.uid.toLowerCase()===un.trim().toLowerCase()&&u.phx===hashPw(pw));
-    if(!m){setErr("Incorrect credentials.");return;}
-    setSession(m);
-    onLogin(m);
+    setLoading(true);
+    try {
+      const users = await dbLoadUsers();
+      // Fall back to localStorage if Supabase empty (first run before seed)
+      const pool = users.length > 0 ? users : ls(SK.users, DEFAULT_USERS);
+      const m = pool.find(u => u.uid.toLowerCase()===un.trim().toLowerCase() && u.phx===hashPw(pw));
+      if(!m){ setErr("Incorrect credentials."); return; }
+      setSession(m);
+      onLogin(m);
+    } catch(e) {
+      // Network issue — fall back to localStorage
+      const pool = ls(SK.users, DEFAULT_USERS);
+      const m = pool.find(u => u.uid.toLowerCase()===un.trim().toLowerCase() && u.phx===hashPw(pw));
+      if(!m){ setErr("Incorrect credentials."); return; }
+      setSession(m);
+      onLogin(m);
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <div className="lp">
@@ -472,8 +517,8 @@ function LoginPage({ onLogin }) {
             <input className={pw?"has-val":""} type="password" value={pw} onChange={e=>{setPw(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&go()}/>
           </div>
           <div className="lp-actions">
-            <button className="lp-btn" onClick={go} disabled={locked} style={locked?{opacity:.5,cursor:"not-allowed"}:{}}>
-              {locked?`Locked (${wait}s)`:"Log in"}
+            <button className="lp-btn" onClick={go} disabled={locked||loading} style={(locked||loading)?{opacity:.5,cursor:"not-allowed"}:{}}>
+              {locked?`Locked (${wait}s)`:loading?"Checking…":"Log in"}
             </button>
             {err&&<div className="lp-err">{err}</div>}
           </div>
@@ -873,28 +918,66 @@ function AdminEx({ questions, exams, setExams }) {
 // ADMIN — USERS TAB
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminUsers({ exams }) {
-  const [users,setUsers]=useState(()=>ls(SK.users,DEFAULT_USERS));
+  const [users,setUsers]=useState([]);
+  const [loading,setLoading]=useState(true);
   const [showAdd,setShowAdd]=useState(false);
-  function addU(u){const all=ls(SK.users,DEFAULT_USERS);if(all.find(x=>x.uid.toLowerCase()===u.uid.toLowerCase()))return alert("ID already exists.");const n=[...all,u];lsSet(SK.users,n);setUsers(n);setShowAdd(false);}
-  function delU(uid){if(uid==="ammodev"){alert("Cannot delete primary admin.");return;}if(!window.confirm(`Delete "${uid}"?`))return;const n=users.filter(u=>u.uid!==uid);lsSet(SK.users,n);setUsers(n);}
+
+  useEffect(()=>{
+    dbLoadUsers()
+      .then(u=>setUsers(u))
+      .catch(e=>alert("Failed to load users: "+e.message))
+      .finally(()=>setLoading(false));
+  },[]);
+
+  function addU(u){
+    dbSaveUser(u)
+      .then(saved=>{
+        setUsers(prev=>{
+          if(prev.find(x=>x.uid.toLowerCase()===saved.uid.toLowerCase())){
+            alert("ID already exists."); return prev;
+          }
+          return [...prev,saved];
+        });
+        setShowAdd(false);
+      })
+      .catch(e=>alert("Save failed: "+e.message));
+  }
+
+  function delU(u){
+    if(u.uid==="ammodev"){alert("Cannot delete primary admin.");return;}
+    if(!window.confirm(`Delete "${u.uid}"?`))return;
+    dbDeleteUser(u)
+      .then(()=>setUsers(prev=>prev.filter(x=>x.uid!==u.uid)))
+      .catch(e=>alert("Delete failed: "+e.message));
+  }
+
   return (
     <div style={{display:"flex",flexDirection:"column",gap:13}}>
-      <div><button className="btn ba" onClick={()=>setShowAdd(true)}>{Ic.plus} Add Login</button></div>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <button className="btn ba" onClick={()=>setShowAdd(true)}>{Ic.plus} Add Login</button>
+        {loading&&<span style={{fontSize:12,color:"var(--muted)"}}>Loading…</span>}
+      </div>
       <div className="card">
         <div className="ch">Active Logins ({users.length})</div>
-        <div className="ug">
-          {users.map(u=>{const ex=u.assignedExam?exams.find(e=>e.id===u.assignedExam):null;return(
-            <div key={u.uid} className="uc">
-              <div className="uct">
-                <div className={`uav${u.role==="admin"?" adm":""}`}>{u.uid[0].toUpperCase()}</div>
-                <div><div className="unm">{u.uid}</div><span className={`urol ${u.role}`}>{u.role}</span></div>
-                <button className="ib dg" style={{marginLeft:"auto"}} onClick={()=>delU(u.uid)}>{Ic.trash}</button>
-              </div>
-              {u.role==="student"&&<div className="uex">{Ic.exam}{ex?ex.name:<em>No exam assigned</em>}</div>}
-              <div style={{fontSize:11,color:"var(--muted)"}}>Password stored securely</div>
-            </div>
-          );})}
-        </div>
+        {users.length===0&&!loading
+          ?<div className="em"><div className="t">No logins yet</div><p>Add your first login above.</p></div>
+          :<div className="ug">
+            {users.map(u=>{
+              const ex=u.assignedExam?exams.find(e=>e.id===u.assignedExam):null;
+              return(
+                <div key={u.uid} className="uc">
+                  <div className="uct">
+                    <div className={`uav${u.role==="admin"?" adm":""}`}>{u.uid[0].toUpperCase()}</div>
+                    <div><div className="unm">{u.uid}</div><span className={`urol ${u.role}`}>{u.role}</span></div>
+                    <button className="ib dg" style={{marginLeft:"auto"}} onClick={()=>delU(u)}>{Ic.trash}</button>
+                  </div>
+                  {u.role==="student"&&<div className="uex">{Ic.exam}{ex?ex.name:<em style={{fontStyle:"italic"}}>No exam assigned</em>}</div>}
+                  <div style={{fontSize:11,color:"var(--muted)"}}>Credentials stored securely</div>
+                </div>
+              );
+            })}
+          </div>
+        }
       </div>
       {showAdd&&<UModal exams={exams} onSave={addU} onClose={()=>setShowAdd(false)}/>}
     </div>
@@ -1371,6 +1454,9 @@ export default function App() {
   const [results,setResults]=useState(null);
   const [studentExam,setStudentExam]=useState(null);
   const [loadingExam,setLoadingExam]=useState(false);
+
+  // Seed default admin into Supabase on first load
+  useEffect(()=>{ dbSeedAdmin(); },[]);
 
   // When a student logs in, load all exams from Supabase
   useEffect(()=>{
