@@ -383,13 +383,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
 /* Stem panel */
 .sp{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.shd{background:#004f6e;color:#fff;font-size:9.5px;font-weight:700;padding:8px 16px;text-transform:uppercase;letter-spacing:.07em;flex-shrink:0}
+.shd{background:#004f6e;color:#fff;font-size:13px;font-weight:500;padding:8px 16px;letter-spacing:.01em;flex-shrink:0}
 .sbody{flex:1;overflow-y:auto;padding:24px 28px}
 .stxt{font-size:15.5px;line-height:1.78;color:var(--text)}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ahd{background:#004f6e;color:#fff;font-size:10px;font-weight:700;padding:7px 13px;letter-spacing:.04em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ahd{background:#004f6e;color:#fff;font-size:13px;font-weight:500;padding:7px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .mb2{font-size:12px;font-weight:300;font-style:italic;color:#000;font-family:'DM Sans',sans-serif}
 .fsq{width:55px;height:55px;background:#fff;border:2px solid #004f6e;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#004f6e;transition:all .15s;flex-shrink:0}
 .fsq:hover{background:#e8f0f4}
