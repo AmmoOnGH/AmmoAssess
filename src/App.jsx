@@ -203,7 +203,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px;background:#001c2f}
 .lp-bg-fallback{position:absolute;inset:0;background:linear-gradient(135deg,#001c2f 0%,#002d45 40%,#001a2c 100%);z-index:0}
 .lp-bg{position:absolute;inset:0;background-image:url('/bg.jpg');background-size:cover;background-position:center;opacity:.9;filter:saturate(1.1);z-index:1}
-.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.97);border-radius:0;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}.lp-card-hdr{background:#001c2f;padding:16px 24px}
+.lp-card{position:relative;z-index:2;background:rgba(255,255,255,.95);border-radius:0;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}.lp-card-hdr{background:#001c2f;padding:16px 24px}
 .lp-logo{font-size:22px;font-weight:700;color:#fff;font-family:'PT Mono',monospace}
 .lp-logo em{font-style:normal;color:#68e348;font-weight:400}
 .lp-ver{position:fixed;top:12px;right:16px;font-size:11px;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;z-index:10;letter-spacing:.04em}
@@ -220,7 +220,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .lp-err{color:#c62828;font-size:12px;font-weight:500;flex:1}
 .lp-storage{font-size:11px;color:#8a9baa;padding:10px 28px 16px;border-top:1px solid #e8edf0;margin-top:4px}
 
-/* ADMIN */
+/* STUDENT LANDING */
+.sl-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px;background:#001c2f}
+.sl-card{position:relative;z-index:2;background:rgba(255,255,255,.95);border-radius:0;width:100%;max-width:560px;box-shadow:0 8px 40px rgba(0,0,0,.45);overflow:hidden}
+.sl-card-hdr{background:#001c2f;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.sl-user-banner{background:#dbe9f7;border:1px solid #b3cfe8;padding:12px 16px;margin-bottom:20px;border-radius:2px}
+.sl-user-banner strong{display:block;font-size:14px;font-weight:700;color:#1a3a4a;margin-bottom:3px}
+.sl-user-banner span{font-size:13px;color:#2a5070}
+.sl-wait{font-size:20px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:24px}
+.sl-f{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.sl-f label{font-size:14px;font-weight:400;color:var(--text)}
+.sl-f select{border:1.5px solid var(--border);border-radius:4px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:#fff;cursor:pointer;appearance:auto}
+.sl-f select:focus{outline:none;border-color:var(--teal)}
+.sl-f input{border:1.5px solid var(--border);border-radius:4px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:#fff;transition:border-color .15s}
+.sl-f input:focus{outline:none;border-color:var(--teal)}
+.sl-actions{display:flex;gap:10px;margin-top:8px}
+.sl-body{padding:28px 28px 24px}
+.sl-storage{font-size:11px;color:#8a9baa;padding:10px 28px 16px;border-top:1px solid #e8edf0}
 .ash{display:flex;flex-direction:column;min-height:100vh}
 .atb{background:var(--td);color:#fff;height:50px;display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;border-bottom:2px solid #1a3a4a}
 .a-logo{font-size:16px;font-weight:800;letter-spacing:-.3px;font-family:'DM Sans',sans-serif}
@@ -1277,47 +1293,67 @@ function Results({ questions, answers, flags, onReturn, onLogout }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STUDENT LANDING
 // ─────────────────────────────────────────────────────────────────────────────
-function StudentLanding({ user, exam, onStart, onLogout }) {
-  const [examQs,setExamQs]=useState([]);
-  const [loading,setLoading]=useState(true);
+function StudentLanding({ user, exams, onStart, onLogout }) {
+  const [selectedExamId,setSelectedExamId]=useState(user.assignedExam||"");
+  const [pin,setPin]=useState("");
+  const [pinErr,setPinErr]=useState("");
+  const [loadingQs,setLoadingQs]=useState(false);
 
-  useEffect(()=>{
+  const selectedExam=exams.find(e=>e.id===selectedExamId)||null;
+
+  function handleBegin() {
+    if(!selectedExam){setPinErr("Please select an exam.");return;}
+    // Offline PIN check — if exam has a pin set, validate it
+    if(selectedExam.pin&&pin!==selectedExam.pin){setPinErr("Incorrect PIN.");return;}
+    setPinErr("");
+    setLoadingQs(true);
     dbLoadQuestions()
       .then(qs=>{
-        const ordered=exam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
-        setExamQs(ordered);
+        const ordered=selectedExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
+        onStart(ordered, selectedExam.duration*60);
       })
       .catch(e=>alert("Failed to load questions: "+e.message))
-      .finally(()=>setLoading(false));
-  },[]);
+      .finally(()=>setLoadingQs(false));
+  }
 
   return (
     <div className="sl-wrap">
       <style>{CSS}</style>
-      <div className="sl-bar">
-        <div className="a-logo"><strong>ammo</strong>/<em>assess</em></div>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:12,color:"rgba(255,255,255,.55)"}}>{user.uid}</span>
-          <button className="btn bg sm" onClick={onLogout}>{Ic.logout} Logout</button>
+      <div className="lp-bg-fallback"/>
+      <div className="lp-bg"/>
+      <div className="lp-ver">p1b-1.13</div>
+      <div className="sl-card">
+        <div className="sl-card-hdr">
+          <div className="lp-logo">ammo/<em>assess</em></div>
         </div>
-      </div>
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:40}}>
-        <div style={{background:"#fff",borderRadius:8,border:"1px solid var(--border)",padding:"34px 38px",maxWidth:440,width:"100%",boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
-          <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:7}}>Your Exam</div>
-          <h2 style={{fontSize:21,fontWeight:800,color:"var(--teal)",marginBottom:18}}>{exam.name}</h2>
-          {loading
-            ? <div style={{textAlign:"center",color:"var(--muted)",fontSize:13,padding:"20px 0"}}>Loading questions…</div>
-            : <>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:26}}>
-                  <div className="sc"><div className="v">{examQs.length}</div><div className="l">Questions</div></div>
-                  <div className="sc"><div className="v">{exam.duration}</div><div className="l">Minutes</div></div>
-                </div>
-                <button className="btn ba" style={{width:"100%",padding:"12px",fontSize:14}}
-                  disabled={examQs.length===0}
-                  onClick={()=>onStart(examQs,exam.duration*60)}>Begin Exam →</button>
-              </>
-          }
+        <div className="sl-body">
+          <div className="sl-user-banner">
+            <strong>You are logged in as user {user.uid}</strong>
+            <span>If this is not you, please log out and log back in with your provided user ID</span>
+          </div>
+          <div className="sl-wait">Please wait, you will be automatically connected when your exam is opened</div>
+          <div className="sl-f">
+            <label>Choose exam</label>
+            <select value={selectedExamId} onChange={e=>{setSelectedExamId(e.target.value);setPinErr("");}}>
+              <option value="">— Select an exam —</option>
+              {exams.map(ex=><option key={ex.id} value={ex.id}>{ex.name}</option>)}
+            </select>
+          </div>
+          <div className="sl-f">
+            <label>Offline PIN</label>
+            <input type="password" value={pin} onChange={e=>{setPin(e.target.value);setPinErr("");}} placeholder="" onKeyDown={e=>e.key==="Enter"&&handleBegin()}/>
+          </div>
+          {pinErr&&<div style={{fontSize:12,color:"var(--wrong)",marginBottom:8,fontWeight:500}}>{pinErr}</div>}
+          <div className="sl-actions">
+            <button className="lp-btn" onClick={handleBegin} disabled={loadingQs||!selectedExamId}>
+              {loadingQs?"Loading…":"Begin Exam"}
+            </button>
+            <button className="lp-btn" style={{background:"transparent",color:"var(--teal)",border:"1px solid var(--teal)"}} onClick={onLogout}>
+              Logout
+            </button>
+          </div>
         </div>
+        <div className="sl-storage">30MB storage used of 296,631MB available</div>
       </div>
     </div>
   );
@@ -1336,13 +1372,13 @@ export default function App() {
   const [studentExam,setStudentExam]=useState(null);
   const [loadingExam,setLoadingExam]=useState(false);
 
-  // When a student logs in, load their assigned exam from Supabase
+  // When a student logs in, load all exams from Supabase
   useEffect(()=>{
-    if(!user||user.role==="admin"||!user.assignedExam) return;
+    if(!user||user.role==="admin") return;
     setLoadingExam(true);
     dbLoadExams()
-      .then(exs=>{ const ex=exs.find(e=>e.id===user.assignedExam)||null; setStudentExam(ex); })
-      .catch(e=>alert("Failed to load exam: "+e.message))
+      .then(exs=>{ setStudentExam(exs); })
+      .catch(e=>alert("Failed to load exams: "+e.message))
       .finally(()=>setLoadingExam(false));
   },[user]);
 
@@ -1357,19 +1393,12 @@ export default function App() {
 
   if(screen==="student") {
     if(loadingExam) return (
-      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",gap:10,fontSize:14,color:"var(--muted)"}}>
+      <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#001c2f",gap:10,fontSize:14,color:"rgba(255,255,255,.6)"}}>
         <style>{CSS}</style>Loading…
       </div>
     );
-    if(!studentExam) return (
-      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"var(--bg)",gap:14}}>
-        <style>{CSS}</style>
-        <div style={{fontSize:17,fontWeight:700,color:"var(--teal)"}}>No exam assigned</div>
-        <div style={{fontSize:13,color:"var(--muted)"}}>Contact your administrator.</div>
-        <button className="btn bw" onClick={logout}>Logout</button>
-      </div>
-    );
-    return <StudentLanding user={user} exam={studentExam} onStart={startExam} onLogout={logout}/>;
+    const allExams=studentExam||[];
+    return <StudentLanding user={user} exams={allExams} onStart={startExam} onLogout={logout}/>;
   }
 
   if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome}/>;
