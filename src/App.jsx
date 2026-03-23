@@ -389,7 +389,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ahd{background:#004f6e;color:#fff;font-size:13px;font-weight:500;padding:7px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ahd{background:#004f6e;color:#fff;font-size:13px;font-weight:500;padding:8px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+
+/* Finish modal */
+.finish-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:600;padding:20px}
+.finish-modal{background:#fff;border-radius:4px;width:100%;max-width:440px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.35)}
+.finish-modal-hdr{background:#004f6e;color:#fff;padding:14px 20px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif}
+.finish-modal-body{padding:22px 24px;font-size:13.5px;line-height:1.7;color:#2a2a2a;font-family:'DM Sans',sans-serif}
+.finish-modal-body strong{font-weight:700;display:block;margin:8px 0 4px}
+.finish-modal-ft{padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #e0e0e0}
+.finish-btn-continue{padding:9px 20px;background:#5e5e5e;color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.finish-btn-continue:hover{background:#484848}
+.finish-btn-submit{padding:9px 20px;background:#b80d0d;color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.finish-btn-submit:hover{background:#960b0b}
 .mb2{font-size:12px;font-weight:300;font-style:italic;color:#000;font-family:'DM Sans',sans-serif}
 .fsq{width:55px;height:55px;background:#fff;border:2px solid #004f6e;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#004f6e;transition:all .15s;flex-shrink:0}
 .fsq:hover{background:#e8f0f4}
@@ -1068,6 +1080,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
   const [showCalc,setShowCalc]=useState(false);
   const [calcExpr,setCalcExpr]=useState("");
   const [navOpen,setNavOpen]=useState(true);
+  const [showFinish,setShowFinish]=useState(false);
   const timerR=useRef(); const amberR=useRef();
 
   function calcPress(val) {
@@ -1129,7 +1142,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <div className="ts"/>
         <button className="tbb">{Ic.lang}<span>Language</span></button>
         <div className="ts"/>
-        <button className="tbb" onClick={()=>onFinish(ans,flags)}>
+        <button className="tbb" onClick={()=>setShowFinish(true)}>
           {Ic.finish}<span>Finish</span>
         </button>
         <div className="ts"/>
@@ -1144,7 +1157,10 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <div className="ti">User ID<span className="iv">{username}</span></div>
         <div className="tnav">
           <button onClick={()=>setCur(c=>c-1)} disabled={cur===0}>{Ic.prev}<span>Previous</span></button>
-          <button onClick={()=>setCur(c=>c+1)} disabled={cur===questions.length-1}>{Ic.next}<span>Next</span></button>
+          <button onClick={()=>{
+            if(cur===questions.length-1) setShowFinish(true);
+            else setCur(c=>c+1);
+          }}>{Ic.next}<span>Next</span></button>
         </div>
       </div>
 
@@ -1225,12 +1241,29 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
           </div>
         </div>
       </div>
+      {/* Finish confirmation modal */}
+      {showFinish&&(()=>{
+        const unanswered=questions.filter(q=>!ans[q.id]).length;
+        return(
+          <div className="finish-modal-overlay" onClick={e=>e.target===e.currentTarget&&setShowFinish(false)}>
+            <div className="finish-modal">
+              <div className="finish-modal-hdr">Ready to finish?</div>
+              <div className="finish-modal-body">
+                <p>You should click <em>Submit exam</em> below before closing the tab or window.</p>
+                <strong>All of your answers have been submitted to the server.</strong>
+                <p>You have <strong style={{display:"inline"}}>{unanswered}</strong> unanswered question{unanswered!==1?"s":""}.</p>
+              </div>
+              <div className="finish-modal-ft">
+                <button className="finish-btn-continue" onClick={()=>setShowFinish(false)}>Continue exam</button>
+                <button className="finish-btn-submit" onClick={()=>{setShowFinish(false);onFinish(ans,flags);}}>Submit exam</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RESULTS — Analytics + Answer Review
 // ─────────────────────────────────────────────────────────────────────────────
 function Results({ questions, answers, flags, onReturn, onLogout }) {
   const [view,setView]=useState("analytics"); // "analytics" | "review"
