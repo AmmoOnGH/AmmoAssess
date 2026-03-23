@@ -370,14 +370,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 /* Nav panel */
 .np{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .nh{background:#004f6e;color:#fff;font-size:10px;font-weight:400;text-transform:capitalize;letter-spacing:.02em;padding:7px 11px;text-align:center}
-.nl{overflow-y:auto;flex:1;padding:6px 8px;display:flex;flex-direction:column;gap:3px}
-.ni{display:flex;align-items:center;justify-content:flex-start;padding-left:10px;width:100%;height:30px;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600;transition:all .12s;color:var(--muted);border:1.5px solid var(--border);background:#fff;position:relative}
-.ni:hover{background:var(--oh);border-color:var(--tl)}
-.ni.cur{background:#004f6e;color:#fff;border-color:#004f6e}
-.ni.ans{background:var(--green);color:#fff;border-color:var(--green);font-weight:700}
-.ni.cur.ans{background:var(--green);color:#fff;border-color:var(--green);outline:2px solid #004f6e;outline-offset:1px}
+.nl{overflow-y:auto;flex:1;padding:0;display:flex;flex-direction:column;gap:0}
+.ni{display:flex;align-items:center;justify-content:flex-start;padding-left:10px;width:100%;height:30px;border-radius:0;cursor:pointer;font-size:12px;font-weight:600;transition:background .1s;color:var(--muted);border:none;border-bottom:2px solid #fff;background:#e8edf0;position:relative}
+.ni:last-child{border-bottom:none}
+.ni:hover{background:var(--oh)}
+.ni.cur{background:#004f6e;color:#fff;}
+.ni.ans{background:var(--green);color:#fff;font-weight:700}
+.ni.cur.ans{background:var(--green);color:#fff;outline:2px solid #004f6e;outline-offset:-2px}
 .ni-flag{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--amber);display:flex;align-items:center}
-.ni.ans .ni-flag{color:#fff8}
+.ni.ans .ni-flag{color:rgba(255,255,255,.75)}
 
 /* Stem panel */
 .sp{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
@@ -389,10 +390,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
 .ahd{background:#004f6e;color:#fff;font-size:9.5px;font-weight:700;padding:7px 13px;text-transform:uppercase;letter-spacing:.07em;display:flex;align-items:center;justify-content:space-between}
 .mb2{font-size:10.5px;font-weight:600;color:rgba(255,255,255,.6)}
-.fsq{padding:3px 8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:3px;cursor:pointer;display:flex;align-items:center;gap:5px;color:rgba(255,255,255,.8);transition:all .15s;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-family:'DM Sans',sans-serif}
+.fsq{width:30px;height:30px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.85);transition:all .15s;flex-shrink:0}
 .fsq:hover{background:rgba(255,255,255,.22)}
-.fsq.fl{background:var(--amber);border-color:var(--amber);color:#1a1200}
-.ab2{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:7px}
+.fsq.fl{background:var(--amber);border-color:var(--amber-dark,#c47a00);color:#1a1200}
+.flag-row{padding:8px 13px 4px;display:flex;justify-content:flex-end}
+.ab2{flex:1;overflow-y:auto;padding:8px 13px 13px;display:flex;flex-direction:column;gap:7px}
 .ob{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:var(--ob);border:1.5px solid var(--border);border-radius:4px;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:13.5px;line-height:1.5;color:var(--text);transition:all .12s;width:100%}
 .ob:hover:not(:disabled){background:var(--oh);border-color:var(--tl)}
 .ob.sel{background:var(--os);border-color:var(--os);color:#fff}
@@ -1129,13 +1131,12 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <div className="ap">
           <div className="ahd">
             <span>Answer</span>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span className="mb2">[1 mark]</span>
-              <button className={`fsq${flags[q.id]?" fl":""}`} onClick={()=>setFlags(f=>({...f,[q.id]:!f[q.id]}))}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill={flags[q.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                {flags[q.id]?"Flagged":"Flag"}
-              </button>
-            </div>
+            <span className="mb2">[1 mark]</span>
+          </div>
+          <div className="flag-row">
+            <button className={`fsq${flags[q.id]?" fl":""}`} onClick={()=>setFlags(f=>({...f,[q.id]:!f[q.id]}))}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill={flags[q.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            </button>
           </div>
           <div className="ab2">
             {["A","B","C","D","E"].map(l=>(
