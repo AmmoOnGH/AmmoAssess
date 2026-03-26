@@ -232,8 +232,20 @@ const Ic = {
   chart:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CSS
+// ── Exam toolbar icons — swap these out when you have the real SVGs ──
+// Replace any value below with your actual SVG element to update that icon.
+// Keys match exactly what's used in the toolbar buttons.
+const ExIc = {
+  overview:    Ic.menu,
+  finish:      Ic.finish,
+  calculator:  Ic.calc,
+  colour:      Ic.colour,
+  language:    Ic.lang,
+  previous:    Ic.prev,
+  next:        Ic.next,
+  // To swap in a custom SVG, replace e.g.:
+  // overview: <svg width="18" height="18" ...>...</svg>,
+};
 // ─────────────────────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=PT+Mono&display=swap');
@@ -372,12 +384,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .ss{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
 
 /* EXAM */
-.ew{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.tb{background:#004f6e;color:#fff;display:flex;align-items:center;padding:0 11px;height:52px;gap:2px;flex-shrink:0;border-bottom:2px solid #003a52}
+.ew{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:#b0bec5}
+.tb{background:rgb(0,30,53);color:#fff;display:flex;align-items:center;padding:0 11px;height:52px;gap:2px;flex-shrink:0}
+.tb-gap{height:16px;background:#b0bec5;flex-shrink:0;display:flex;align-items:center;gap:3px;padding:0 3px}
+.tb-gap-bar{width:1px;height:10px;background:rgba(0,0,0,.15)}
 .tbb{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 8px;border-radius:4px;background:none;border:none;color:#fff;cursor:pointer;font-size:9px;font-family:'DM Sans',sans-serif;letter-spacing:.06em;text-transform:uppercase;font-weight:300;transition:background .15s;white-space:nowrap}
 .tbb:hover{background:rgba(255,255,255,.12)}
 .tbb svg{flex-shrink:0}
-.ts{width:1px;background:rgba(255,255,255,.15);height:27px;margin:0 3px}
+.ts{width:1px;background:rgba(255,255,255,.2);height:27px;margin:0 3px}
 .tc2{display:flex;align-items:center;gap:4px;margin:0 2px}
 .tt{display:flex;flex-direction:column;align-items:center;font-size:9px;font-weight:300;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.8)}
 .tt .tv{font-size:17px;font-weight:300;color:#fff;letter-spacing:.02em;font-variant-numeric:tabular-nums}
@@ -389,36 +403,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .tnav button:hover{background:rgba(255,255,255,.12)}
 .tnav button:disabled{opacity:.3;cursor:not-allowed}
 .ab{background:var(--amber);text-align:center;font-size:12px;font-weight:700;color:#1a1200;padding:5px 0;letter-spacing:.04em;flex-shrink:0}
-.eb{display:grid;grid-template-columns:152px 1fr 330px;flex:1;overflow:hidden}
+.eb{display:grid;grid-template-columns:152px 1fr 330px;flex:1;overflow:hidden;gap:3px}
 .eb.nav-collapsed{grid-template-columns:0 1fr 330px}
 
 /* Nav panel */
-.np{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:all .2s}
-.nh{background:#004f6e;color:#fff;font-size:13px;font-weight:500;text-transform:capitalize;letter-spacing:.01em;padding:8px 11px;text-align:center;flex-shrink:0}
+.np{background:var(--panel);display:flex;flex-direction:column;overflow:hidden;transition:all .2s}
+.nh{background:rgb(0,30,53);color:#fff;font-size:13px;font-weight:500;text-transform:capitalize;letter-spacing:.01em;padding:8px 11px;text-align:center;flex-shrink:0}
 .nl{overflow-y:auto;flex:1;padding:0;display:flex;flex-direction:column;gap:0}
 .ni{display:flex;align-items:center;justify-content:flex-start;padding-left:10px;width:100%;height:30px;border-radius:0;cursor:pointer;font-size:13px;font-weight:600;transition:background .1s;color:var(--muted);border:none;border-bottom:2px solid #fff;background:#fff;position:relative;flex-shrink:0}
 .ni:last-child{border-bottom:none}
 .ni:hover{background:#e8f0f4}
 .ni.cur{background:#fff;color:var(--text);font-weight:800}
 .ni.ans{background:#32673f;color:#fff;font-weight:700}
-.ni.cur.ans{background:#32673f;color:#fff;font-weight:800;outline:2px solid #004f6e;outline-offset:-2px}
-.ni-flag{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:#004f6e;display:flex;align-items:center}
+.ni.cur.ans{background:#32673f;color:#fff;font-weight:800;outline:2px solid rgb(0,30,53);outline-offset:-2px}
+.ni-flag{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:rgb(0,30,53);display:flex;align-items:center}
 .ni.ans .ni-flag{color:rgba(255,255,255,.75)}
 
 /* Stem panel */
-.sp{background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.shd{background:#004f6e;color:#fff;font-size:13px;font-weight:500;padding:8px 16px;letter-spacing:.01em;flex-shrink:0}
+.sp{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.shd{background:rgb(0,30,53);color:#fff;font-size:13px;font-weight:500;padding:8px 16px;letter-spacing:.01em;flex-shrink:0}
 .sbody{flex:1;overflow-y:auto;padding:24px 28px}
 .stxt{font-size:15.5px;line-height:1.78;color:var(--text)}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ahd{background:#004f6e;color:#fff;font-size:13px;font-weight:500;padding:8px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ahd{background:rgb(0,30,53);color:#fff;font-size:13px;font-weight:500;padding:8px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 
 /* Finish modal */
 .finish-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:600;padding:20px}
 .finish-modal{background:#fff;border-radius:4px;width:100%;max-width:600px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.35)}
-.finish-modal-hdr{background:#004f6e;color:#fff;padding:14px 20px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;text-align:center}
+.finish-modal-hdr{background:rgb(0,30,53);color:#fff;padding:14px 20px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;text-align:center}
 .finish-modal-body{padding:28px 32px;font-size:13.5px;line-height:1.8;color:#2a2a2a;font-family:'DM Sans',sans-serif;text-align:center}
 .finish-modal-body strong{font-weight:700;display:block;margin:8px 0 4px}
 .finish-modal-ft{padding:16px 24px;display:flex;gap:10px;justify-content:space-between;border-top:1px solid #e0e0e0}
@@ -427,9 +441,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .finish-btn-submit{padding:9px 20px;background:#b80d0d;color:#fff;border:none;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
 .finish-btn-submit:hover{background:#960b0b}
 .mb2{font-size:12px;font-weight:300;font-style:italic;color:#000;font-family:'DM Sans',sans-serif}
-.fsq{width:55px;height:55px;background:#fff;border:2px solid #004f6e;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#004f6e;transition:all .15s;flex-shrink:0}
+.fsq{width:55px;height:55px;background:#fff;border:2px solid rgb(0,30,53);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgb(0,30,53);transition:all .15s;flex-shrink:0}
 .fsq:hover{background:#e8f0f4}
-.fsq.fl{background:#004f6e;border-color:#004f6e;color:#fff}
+.fsq.fl{background:rgb(0,30,53);border-color:rgb(0,30,53);color:#fff}
 .flag-row{padding:10px 13px 6px;display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0}
 .ab2{flex:1;overflow-y:auto;padding:8px 13px 13px;display:flex;flex-direction:column;gap:7px}
 .ob{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;background:#fff;border:2px solid #32673f;border-radius:4px;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;color:var(--text);transition:background .12s,border-color .12s;width:100%}
@@ -1322,18 +1336,18 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
       <style>{CSS}</style>
       <div className="tb">
         <button className="tbb" onClick={()=>setNavOpen(o=>!o)}>
-          {Ic.menu}<span>Overview</span>
+          {ExIc.overview}<span>Overview</span>
         </button>
         <div className="ts"/>
-        <button className="tbb">{Ic.lang}<span>Language</span></button>
+        <button className="tbb">{ExIc.language}<span>Language</span></button>
         <div className="ts"/>
         <button className="tbb" onClick={()=>setShowFinish(true)}>
-          {Ic.finish}<span>Finish</span>
+          {ExIc.finish}<span>Finish</span>
         </button>
         <div className="ts"/>
-        <button className="tbb" onClick={()=>setShowCalc(s=>!s)}>{Ic.calc}<span>Calculator</span></button>
+        <button className="tbb" onClick={()=>setShowCalc(s=>!s)}>{ExIc.calculator}<span>Calculator</span></button>
         <div className="ts"/>
-        <button className="tbb">{Ic.colour}<span>Colour</span></button>
+        <button className="tbb">{ExIc.colour}<span>Colour</span></button>
         <div className="ts"/>
         <div className={`tc2${warn?" w":""}`}>
           <div className="tt">Time Remaining<span className="tv">{fmt(tLeft)}</span></div>
@@ -1341,12 +1355,21 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <div className="ts"/>
         <div className="ti">User ID<span className="iv">{username}</span></div>
         <div className="tnav">
-          <button onClick={()=>setCur(c=>c-1)} disabled={cur===0}>{Ic.prev}<span>Previous</span></button>
+          <button onClick={()=>setCur(c=>c-1)} disabled={cur===0}>{ExIc.previous}<span>Previous</span></button>
           <button onClick={()=>{
             if(cur===questions.length-1) setShowFinish(true);
             else setCur(c=>c+1);
-          }}>{Ic.next}<span>Next</span></button>
+          }}>{ExIc.next}<span>Next</span></button>
         </div>
+      </div>
+
+      {/* 16px gap row with subtle grey separators between panels */}
+      <div className="tb-gap">
+        <div style={{width:152,flexShrink:0}}/>
+        <div className="tb-gap-bar"/>
+        <div style={{flex:1}}/>
+        <div className="tb-gap-bar"/>
+        <div style={{width:330,flexShrink:0}}/>
       </div>
 
       {amberMsg&&<div className="ab">{amberMsg}</div>}
