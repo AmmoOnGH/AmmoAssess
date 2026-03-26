@@ -193,6 +193,17 @@ async function dbSeedAdmin() {
   } catch(e) { console.warn("seed:", e.message); }
 }
 
+// ── Result helpers ──
+async function dbSaveResult(r) {
+  const rows = await sbFetch("results", { method:"POST", body: JSON.stringify({ data: r }) });
+  return { ...r, _dbId: rows[0]?.id };
+}
+
+async function dbLoadResults() {
+  const rows = await sbFetch("results?select=id,data,created_at&order=created_at.desc");
+  return rows.map(r => ({ ...r.data, _dbId: r.id, createdAt: r.created_at }));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ICONS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -218,6 +229,7 @@ const Ic = {
   exam:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
   bank:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
   shield:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  chart:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1026,14 +1038,174 @@ function AdminUsers({ exams }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADMIN SHELL
+// ADMIN — RESULTS TAB
+// ─────────────────────────────────────────────────────────────────────────────
+function AdminResults({ exams }) {
+  const [results,setResults]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [expanded,setExpanded]=useState(null); // result _dbId
+  const [examFilter,setExamFilter]=useState("all");
+
+  useEffect(()=>{
+    dbLoadResults()
+      .then(r=>setResults(r))
+      .catch(e=>alert("Failed to load results: "+e.message))
+      .finally(()=>setLoading(false));
+  },[]);
+
+  const filtered=examFilter==="all"?results:results.filter(r=>r.examId===examFilter);
+
+  // Cohort stats for a given exam
+  function cohortStats(examId) {
+    const ers=results.filter(r=>r.examId===examId);
+    if(!ers.length) return null;
+    const avg=Math.round(ers.reduce((s,r)=>s+r.pct,0)/ers.length);
+    // Question difficulty — how many got each question wrong
+    const qWrong={};
+    ers.forEach(r=>{
+      r.breakdown?.forEach(b=>{
+        if(!b.correct){ qWrong[b.stem]=(qWrong[b.stem]||0)+1; }
+      });
+    });
+    const hardest=Object.entries(qWrong).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    // PBL weakness
+    const pblTotals={};
+    ers.forEach(r=>{
+      r.breakdown?.forEach(b=>{
+        b.tags?.filter(t=>t.match(/^PBL-/i)).forEach(pbl=>{
+          if(!pblTotals[pbl])pblTotals[pbl]={c:0,t:0};
+          pblTotals[pbl].t++;
+          if(b.correct)pblTotals[pbl].c++;
+        });
+      });
+    });
+    const weakPBL=Object.entries(pblTotals).map(([k,v])=>({k,pct:Math.round(v.c/v.t*100),c:v.c,t:v.t})).sort((a,b)=>a.pct-b.pct).slice(0,5);
+    return {avg,hardest,weakPBL,n:ers.length};
+  }
+
+  function Bar({pct}){
+    const c=pct>=70?"var(--green)":pct>=50?"var(--amber)":"var(--wrong)";
+    return <div style={{height:7,borderRadius:4,background:"var(--border)",overflow:"hidden",flex:1,minWidth:80}}>
+      <div style={{height:"100%",width:`${pct}%`,background:c,borderRadius:4}}/>
+    </div>;
+  }
+
+  const uniqueExams=[...new Map(results.map(r=>[r.examId,{id:r.examId,name:r.examName}])).values()];
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      {/* Summary stats */}
+      <div className="sr">
+        <div className="sc"><div className="v">{results.length}</div><div className="l">Total Attempts</div></div>
+        <div className="sc"><div className="v">{[...new Set(results.map(r=>r.uid))].length}</div><div className="l">Students</div></div>
+        <div className="sc"><div className="v">{uniqueExams.length}</div><div className="l">Exams Sat</div></div>
+        <div className="sc"><div className="v">{results.length?Math.round(results.reduce((s,r)=>s+r.pct,0)/results.length):0}%</div><div className="l">Overall Avg</div></div>
+      </div>
+
+      {/* Exam filter */}
+      {uniqueExams.length>1&&(
+        <div className="fb">
+          <button className={`tc${examFilter==="all"?" on":""}`} onClick={()=>setExamFilter("all")}>All Exams</button>
+          {uniqueExams.map(e=><button key={e.id} className={`tc${examFilter===e.id?" on":""}`} onClick={()=>setExamFilter(e.id)}>{e.name}</button>)}
+        </div>
+      )}
+
+      {/* Cohort analytics per exam */}
+      {examFilter!=="all"&&(()=>{
+        const cs=cohortStats(examFilter);
+        if(!cs)return null;
+        return(
+          <div className="card" style={{marginBottom:4}}>
+            <div className="ch">Cohort Analytics — {filtered[0]?.examName} ({cs.n} attempt{cs.n!==1?"s":""})</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:0}}>
+              <div style={{padding:"14px 18px",borderRight:"1px solid var(--border)"}}>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:10}}>Cohort Average</div>
+                <div style={{fontSize:36,fontWeight:800,color:"var(--teal)"}}>{cs.avg}%</div>
+                <div style={{fontSize:11,color:"var(--muted)",marginTop:3}}>{cs.n} submission{cs.n!==1?"s":""}</div>
+              </div>
+              <div style={{padding:"14px 18px"}}>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:8}}>Weakest PBL Blocks</div>
+                {cs.weakPBL.length===0?<div style={{fontSize:12,color:"var(--muted)"}}>No PBL tags found</div>
+                  :cs.weakPBL.map(({k,pct,c,t})=>(
+                    <div key={k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{fontSize:12,minWidth:60,color:"var(--text)"}}>{k}</span>
+                      <Bar pct={pct}/>
+                      <span style={{fontSize:11,color:"var(--muted)",minWidth:52,textAlign:"right"}}>{c}/{t} · {pct}%</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            {cs.hardest.length>0&&(
+              <div style={{padding:"12px 18px",borderTop:"1px solid var(--border)"}}>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:8}}>Most Missed Questions</div>
+                {cs.hardest.map(([stem,n],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:6,fontSize:12}}>
+                    <span style={{background:"var(--wrong)",color:"#fff",borderRadius:3,padding:"1px 6px",fontWeight:700,flexShrink:0}}>{n}✗</span>
+                    <span style={{color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{stem}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Attempts table */}
+      <div className="card">
+        <div className="ch">
+          {examFilter==="all"?"All Attempts":filtered[0]?.examName||"Attempts"} ({filtered.length})
+          {loading&&<span style={{fontWeight:300,opacity:.7,marginLeft:8}}>Loading…</span>}
+        </div>
+        <div className="qth" style={{gridTemplateColumns:"1fr 140px 90px 90px 100px",display:"grid",padding:"8px 14px",gap:10}}>
+          <span>Student</span><span>Exam</span><span>Score</span><span>%</span><span>Date</span>
+        </div>
+        {filtered.length===0&&!loading
+          ?<div className="em"><div className="t">No results yet</div><p>Results appear here once students complete exams.</p></div>
+          :filtered.map(r=>(
+            <div key={r._dbId}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 140px 90px 90px 100px",padding:"11px 14px",gap:10,alignItems:"center",borderBottom:"1px solid var(--border)",cursor:"pointer",transition:"background .1s",background:expanded===r._dbId?"var(--ob)":"#fff"}}
+                onClick={()=>setExpanded(expanded===r._dbId?null:r._dbId)}>
+                <span style={{fontWeight:600,fontSize:13}}>{r.uid}</span>
+                <span style={{fontSize:12,color:"var(--muted)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.examName}</span>
+                <span style={{fontSize:13}}>{r.score}/{r.total}</span>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <Bar pct={r.pct}/>
+                  <span style={{fontSize:12,fontWeight:700,minWidth:32}}>{r.pct}%</span>
+                </div>
+                <span style={{fontSize:11,color:"var(--muted)"}}>{r.date}</span>
+              </div>
+              {expanded===r._dbId&&(
+                <div style={{background:"#f8fafb",borderBottom:"1px solid var(--border)",padding:"14px 18px"}}>
+                  <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:10}}>
+                    Question Breakdown — {r.uid} on {r.examName}
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                    {r.breakdown?.map((b,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:10,fontSize:12}}>
+                        <span style={{width:20,fontWeight:700,color:"var(--teal)",flexShrink:0}}>Q{i+1}</span>
+                        <span style={{flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:"var(--text)"}}>{b.stem}</span>
+                        <span style={{flexShrink:0,fontWeight:700,color:b.correct?"var(--green)":"var(--wrong)"}}>{b.correct?"✓":"✗"}</span>
+                        <span style={{flexShrink:0,fontSize:11,color:"var(--muted)",minWidth:80,textAlign:"right"}}>{b.tags?.find(t=>t.match(/^LO-/i))||""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminShell({ user, onLogout }) {
   const [tab,setTab]=useState("questions");
   const [questions,setQuestions]=useState([]);
   const [exams,setExams]=useState([]);
   const [loading,setLoading]=useState(true);
-  const tabs=[{id:"questions",label:"Question Bank",ic:Ic.bank},{id:"exams",label:"Exams",ic:Ic.exam},{id:"users",label:"Users",ic:Ic.shield}];
+  const tabs=[{id:"questions",label:"Question Bank",ic:Ic.bank},{id:"exams",label:"Exams",ic:Ic.exam},{id:"users",label:"Users",ic:Ic.shield},{id:"results",label:"Results",ic:Ic.chart}];
 
   useEffect(()=>{
     Promise.all([dbLoadQuestions(), dbLoadExams()])
@@ -1065,6 +1237,7 @@ function AdminShell({ user, onLogout }) {
               {tab==="questions"&&<AdminQ questions={questions} setQuestions={setQuestions}/>}
               {tab==="exams"&&<AdminEx questions={questions} exams={exams} setExams={setExams}/>}
               {tab==="users"&&<AdminUsers exams={exams}/>}
+              {tab==="results"&&<AdminResults exams={exams}/>}
             </>
         }
       </div>
@@ -1526,7 +1699,7 @@ function StudentLanding({ user, exams, onStart, onLogout }) {
     dbLoadQuestions()
       .then(qs=>{
         const ordered=selectedExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
-        onStart(ordered, selectedExam.duration*60);
+        onStart(ordered, selectedExam.duration*60, selectedExam.name, selectedExam.id);
       })
       .catch(e=>alert("Failed to load questions: "+e.message))
       .finally(()=>setLoadingQs(false));
@@ -1584,6 +1757,8 @@ export default function App() {
   const [screen,setScreen]=useState(existingSession?(existingSession.role==="admin"?"admin":"student"):"login");
   const [examQs,setExamQs]=useState([]);
   const [examTime,setExamTime]=useState(0);
+  const [examMeta,setExamMeta]=useState({name:"",id:""});
+  const [examStartTime,setExamStartTime]=useState(null);
   const [results,setResults]=useState(null);
   const [studentExam,setStudentExam]=useState(null);
   const [loadingExam,setLoadingExam]=useState(false);
@@ -1603,8 +1778,41 @@ export default function App() {
 
   function login(u){setUser(u);setScreen(u.role==="admin"?"admin":"student");}
   function logout(){clearSession();setUser(null);setScreen("login");setResults(null);setStudentExam(null);}
-  function startExam(qs,time){setExamQs(shuffle(qs));setExamTime(time);setScreen("exam");}
-  function finish(a,f){setResults({a,f});setScreen("results");}
+  function startExam(qs,time,name="",id=""){
+    setExamQs(shuffle(qs));setExamTime(time);
+    setExamMeta({name,id});setExamStartTime(Date.now());
+    setScreen("exam");
+  }
+  function finish(a,f){
+    // Build result record
+    const total=examQs.length;
+    const correct=examQs.filter(q=>a[q.id]===q.answer).length;
+    const pct=Math.round((correct/total)*100);
+    const timeTaken=examStartTime?Math.round((Date.now()-examStartTime)/1000):0;
+    const breakdown=examQs.map(q=>({
+      stem:q.stem,
+      answer:q.answer,
+      given:a[q.id]||null,
+      correct:a[q.id]===q.answer,
+      flagged:!!f[q.id],
+      tags:q.tags||[],
+    }));
+    const record={
+      uid:user?.uid||"unknown",
+      examId:examMeta.id,
+      examName:examMeta.name,
+      score:correct,
+      total,
+      pct,
+      timeTaken,
+      date:new Date().toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}),
+      breakdown,
+    };
+    // Save to Supabase (fire and forget — don't block results screen)
+    dbSaveResult(record).catch(e=>console.warn("Result save failed:",e.message));
+    setResults({a,f});
+    setScreen("results");
+  }
   function returnHome(){setResults(null);setScreen(user?.role==="admin"?"admin":"student");}
 
   if(screen==="login") return <LoginPage onLogin={login}/>;
