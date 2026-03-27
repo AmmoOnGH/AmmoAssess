@@ -232,19 +232,17 @@ const Ic = {
   chart:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
 };
 
-// ── Exam toolbar icons — swap these out when you have the real SVGs ──
-// Replace any value below with your actual SVG element to update that icon.
-// Keys match exactly what's used in the toolbar buttons.
+// ── Exam toolbar icons ──
+const IC_COLOR = "rgb(212,228,255)";
 const ExIc = {
-  overview:    Ic.menu,
-  finish:      Ic.finish,
-  calculator:  Ic.calc,
-  colour:      Ic.colour,
-  language:    Ic.lang,
-  previous:    Ic.prev,
-  next:        Ic.next,
-  // To swap in a custom SVG, replace e.g.:
-  // overview: <svg width="18" height="18" ...>...</svg>,
+  overview:   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style={{width:"1.2em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="M24 56c0-13.3 10.7-24 24-24h32c13.3 0 24 10.7 24 24v120h16c13.3 0 24 10.7 24 24s-10.7 24-24 24H40c-13.3 0-24-10.7-24-24s10.7-24 24-24h16V80h-8c-13.3 0-24-10.7-24-24m62.7 285.2c-6.5-7.4-18.3-6.9-24 1.2l-11.2 15.5c-7.7 10.8-22.7 13.3-33.5 5.6S4.7 340.8 12.4 330l11.1-15.6c23.7-33.2 72.3-35.6 99.2-4.9 21.3 24.4 20.8 60.9-1.1 84.7L86.8 432H120c13.3 0 24 10.7 24 24s-10.7 24-24 24H32c-9.5 0-18.2-5.6-22-14.4s-2.1-18.9 4.3-25.9l72-78c5.3-5.8 5.4-14.6.3-20.5zM224 64h256c17.7 0 32 14.3 32 32s-14.3 32-32 32H224c-17.7 0-32-14.3-32-32s14.3-32 32-32m0 160h256c17.7 0 32 14.3 32 32s-14.3 32-32 32H224c-17.7 0-32-14.3-32-32s14.3-32 32-32m0 160h256c17.7 0 32 14.3 32 32s-14.3 32-32 32H224c-17.7 0-32-14.3-32-32s14.3-32 32-32"/></svg>,
+  finish:     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style={{width:"1.2em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="m377.9 105.9 122.8 122.8c7.2 7.2 11.3 17.1 11.3 27.3s-4.1 20.1-11.3 27.3L377.9 406.1c-6.4 6.4-15 9.9-24 9.9-18.7 0-33.9-15.2-33.9-33.9V320H192c-17.7 0-32-14.3-32-32v-64c0-17.7 14.3-32 32-32h128v-62.1c0-18.7 15.2-33.9 33.9-33.9 9 0 17.6 3.6 24 9.9M160 96H96c-17.7 0-32 14.3-32 32v256c0 17.7 14.3 32 32 32h64c17.7 0 32 14.3 32 32s-14.3 32-32 32H96c-53 0-96-43-96-96V128c0-53 43-96 96-96h64c17.7 0 32 14.3 32 32s-14.3 32-32 32"/></svg>,
+  calculator: <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" style={{width:"1em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="M64 0C28.7 0 0 28.7 0 64v384c0 35.3 28.7 64 64 64h256c35.3 0 64-28.7 64-64V64c0-35.3-28.7-64-64-64zm32 64h192c17.7 0 32 14.3 32 32v32c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V96c0-17.7 14.3-32 32-32m32 160a32 32 0 1 1-64 0 32 32 0 1 1 64 0M96 352a32 32 0 1 1 0-64 32 32 0 1 1 0 64m-32 64c0-17.7 14.3-32 32-32h96c17.7 0 32 14.3 32 32s-14.3 32-32 32H96c-17.7 0-32-14.3-32-32m128-160a32 32 0 1 1 0-64 32 32 0 1 1 0 64m32 64a32 32 0 1 1-64 0 32 32 0 1 1 64 0m64-64a32 32 0 1 1 0-64 32 32 0 1 1 0 64m32 64a32 32 0 1 1-64 0 32 32 0 1 1 64 0m-32 128a32 32 0 1 1 0-64 32 32 0 1 1 0 64"/></svg>,
+  colour:     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style={{width:"1.2em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="M512 256v2.7c-.4 36.5-33.6 61.3-70.1 61.3H344c-26.5 0-48 21.5-48 48 0 3.4.4 6.7 1 9.9 2.1 10.2 6.5 20 10.8 29.9 6.1 13.8 12.1 27.5 12.1 42 0 31.8-21.6 60.7-53.4 62-3.5.1-7 .2-10.6.2C114.6 512 0 397.4 0 256S114.6 0 256 0s256 114.6 256 256m-384 32a32 32 0 1 0-64 0 32 32 0 1 0 64 0m0-96a32 32 0 1 0 0-64 32 32 0 1 0 0 64m160-96a32 32 0 1 0-64 0 32 32 0 1 0 64 0m96 96a32 32 0 1 0 0-64 32 32 0 1 0 0 64"/></svg>,
+  notes:      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style={{width:"1.2em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="M471.6 21.7c-21.9-21.9-57.3-21.9-79.2 0l-30.1 30 97.9 97.9 30.1-30.1c21.9-21.9 21.9-57.3 0-79.2zm-299.2 220c-6.1 6.1-10.8 13.6-13.5 21.9l-29.6 88.8c-2.9 8.6-.6 18.1 5.8 24.6s15.9 8.7 24.6 5.8l88.8-29.6c8.2-2.7 15.7-7.4 21.9-13.5l167.3-167.4-98-98zM96 64c-53 0-96 43-96 96v256c0 53 43 96 96 96h256c53 0 96-43 96-96v-96c0-17.7-14.3-32-32-32s-32 14.3-32 32v96c0 17.7-14.3 32-32 32H96c-17.7 0-32-14.3-32-32V160c0-17.7 14.3-32 32-32h96c17.7 0 32-14.3 32-32s-14.3-32-32-32z"/></svg>,
+  highlight:  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512" style={{width:"1.2em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="m315 315 158.4-215-29.3-29.4L229 229zm-187 5v-71.7c0-15.3 7.2-29.6 19.5-38.6L420.6 8.4C428 2.9 437 0 446.2 0c11.4 0 22.4 4.5 30.5 12.6l54.8 54.8c8.1 8.1 12.6 19 12.6 30.5 0 9.2-2.9 18.2-8.4 25.6l-201.3 273c-9 12.3-23.4 19.5-38.6 19.5H224l-25.4 25.4c-12.5 12.5-32.8 12.5-45.3 0l-50.7-50.7c-12.5-12.5-12.5-32.8 0-45.3zM7 466.3l63-63 70.6 70.6-31 31c-4.5 4.5-10.6 7-17 7L24 512c-13.3 0-24-10.7-24-24v-4.7c0-6.4 2.5-12.5 7-17"/></svg>,
+  previous:   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style={{width:"1.1em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H109.3l105.3-105.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>,
+  next:       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style={{width:"1.1em",height:"1.2em",fill:"rgb(212,228,255)"}}><path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224H32c-17.7 0-32 14.3-32 32s14.3 32 32 32h306.7L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/></svg>,
 };
 // ─────────────────────────────────────────────────────────────────────────────
 const CSS = `
@@ -385,23 +383,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
 /* EXAM */
 .ew{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:#b0bec5}
-.tb{background:rgb(0,30,53);color:#fff;display:flex;align-items:center;padding:0 8px;height:52px;gap:1px;flex-shrink:0}
-.tb-gap{height:16px;background:#b0bec5;flex-shrink:0;display:flex;align-items:center;gap:3px;padding:0 3px}
+.tb{background:rgb(0,30,53);color:rgb(212,228,255);display:flex;align-items:center;padding:0 8px;height:52px;gap:1px;flex-shrink:0}
+.tb-gap{height:16px;background:#fff;flex-shrink:0;display:flex;align-items:center;gap:3px;padding:0 3px}
 .tb-gap-bar{width:1px;height:10px;background:rgba(0,0,0,.15)}
-.tbb{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:#fff;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;font-weight:400;transition:background .15s;white-space:nowrap}
+.tbb{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:rgb(212,228,255);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;font-weight:300;transition:background .15s;white-space:nowrap}
 .tbb:hover{background:rgba(255,255,255,.12)}
 .tbb:active{background:rgba(255,255,255,.25)!important}
 .tbb:disabled,.tbb[aria-disabled="true"]{opacity:.66}
 .tbb svg{flex-shrink:0;height:1em;width:1em}
 .ts{width:1px;background:rgba(255,255,255,.2);height:27px;margin:0 2px}
 .tc2{display:flex;align-items:center;gap:4px;margin:0 1px}
-.tt{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.85)}
-.tt .tv{font-size:16px;font-weight:400;color:#fff;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1.2}
+.tt{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:300;letter-spacing:.04em;text-transform:uppercase;color:rgb(212,228,255)}
+.tt .tv{font-size:16px;font-weight:300;color:rgb(212,228,255);letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1.2}
+.tt .tl{font-size:10px;font-weight:300;color:rgb(212,228,255);letter-spacing:.06em;text-transform:uppercase;opacity:.85}
 .tt.w .tv{color:var(--al)}
-.ti{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:400;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.85)}
-.ti .iv{font-size:13px;font-weight:400;color:#fff;line-height:1.2}
+.ti{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:300;text-transform:uppercase;letter-spacing:.04em;color:rgb(212,228,255)}
+.ti .iv{font-size:13px;font-weight:300;color:rgb(212,228,255);line-height:1.2}
 .tnav{display:flex;margin-left:auto}
-.tnav button{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:#fff;cursor:pointer;font-size:12px;text-transform:uppercase;font-weight:400;letter-spacing:.04em;font-family:'DM Sans',sans-serif;transition:background .15s}
+.tnav button{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:rgb(212,228,255);cursor:pointer;font-size:12px;text-transform:uppercase;font-weight:300;letter-spacing:.04em;font-family:'DM Sans',sans-serif;transition:background .15s}
 .tnav button:hover{background:rgba(255,255,255,.12)}
 .tnav button:active{background:rgba(255,255,255,.25)!important}
 .tnav button:disabled{opacity:.3;cursor:not-allowed}
@@ -1342,8 +1341,6 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
           {ExIc.overview}<span>Overview</span>
         </button>
         <div className="ts"/>
-        <button className="tbb">{ExIc.language}<span>Language</span></button>
-        <div className="ts"/>
         <button className="tbb" onClick={()=>setShowFinish(true)}>
           {ExIc.finish}<span>Finish</span>
         </button>
@@ -1352,11 +1349,16 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <div className="ts"/>
         <button className="tbb">{ExIc.colour}<span>Colour</span></button>
         <div className="ts"/>
-        <div className={`tc2${warn?" w":""}`}>
-          <div className="tt">Time Remaining<span className="tv">{fmt(tLeft)}</span></div>
+        <div className={`tt${warn?" w":""}`}>
+          <span className="tv">{fmt(tLeft)}</span>
+          <span className="tl">Time Remaining</span>
         </div>
         <div className="ts"/>
-        <div className="ti">User ID<span className="iv">{username}</span></div>
+        <button className="tbb">{ExIc.notes}<span>Notes</span></button>
+        <div className="ts"/>
+        <button className="tbb">{ExIc.highlight}<span>(Un)Highlight</span></button>
+        <div className="ts"/>
+        <div className="ti"><span className="iv">{username}</span><span>User ID</span></div>
         <div className="tnav">
           <button onClick={()=>setCur(c=>c-1)} disabled={cur===0}>{ExIc.previous}<span>Previous</span></button>
           <button onClick={()=>{
