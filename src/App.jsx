@@ -264,6 +264,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#b0bec5;border-radius:3px}
 
+/* Global dotted focus ring for all interactive elements */
+*:focus{outline:none}
+*:focus-visible{outline:2px dashed rgb(0,30,53);outline-offset:2px}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dashed var(--teal);outline-offset:1px}
+
 /* LOGIN */
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:20px;background:#001c2f}
 .lp-bg-fallback{position:absolute;inset:0;background:linear-gradient(135deg,#001c2f 0%,#002d45 40%,#001a2c 100%);z-index:0}
@@ -383,53 +388,53 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 
 /* EXAM */
 .ew{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:#b0bec5}
-.tb{background:rgb(0,30,53);color:rgb(212,228,255);display:flex;align-items:center;padding:0 8px;height:52px;gap:1px;flex-shrink:0}
-.tb-gap{height:16px;background:#fff;flex-shrink:0;display:flex;align-items:center;gap:3px;padding:0 3px}
-.tb-gap-bar{width:1px;height:10px;background:rgba(0,0,0,.15)}
+.tb{background:rgb(0,30,53);color:rgb(212,228,255);display:flex;align-items:center;padding:0 8px;height:62px;gap:1px;flex-shrink:0}
+.tb-gap{height:4px;background:#fff;flex-shrink:0}
 .tbb{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:rgb(212,228,255);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;font-weight:300;transition:background .15s;white-space:nowrap}
 .tbb:hover{background:rgba(255,255,255,.12)}
 .tbb:active{background:rgba(255,255,255,.25)!important}
+.tbb:focus-visible{outline:2px dashed rgb(212,228,255);outline-offset:2px}
 .tbb:disabled,.tbb[aria-disabled="true"]{opacity:.66}
 .tbb svg{flex-shrink:0;height:1em;width:1em}
-.ts{width:1px;background:rgba(255,255,255,.2);height:27px;margin:0 2px}
-.tc2{display:flex;align-items:center;gap:4px;margin:0 1px}
-.tt{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:300;letter-spacing:.04em;text-transform:uppercase;color:rgb(212,228,255)}
+.tt{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:300;letter-spacing:.04em;text-transform:uppercase;color:rgb(141,161,186)}
 .tt .tv{font-size:16px;font-weight:300;color:rgb(212,228,255);letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1.2}
-.tt .tl{font-size:10px;font-weight:300;color:rgb(212,228,255);letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.tt .tl{font-size:12px;font-weight:300;color:rgb(141,161,186);letter-spacing:.04em;text-transform:uppercase}
 .tt.w .tv{color:var(--al)}
-.ti{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:300;text-transform:uppercase;letter-spacing:.04em;color:rgb(212,228,255)}
-.ti .iv{font-size:13px;font-weight:300;color:rgb(212,228,255);line-height:1.2}
+.ti{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;font-size:12px;font-weight:300;text-transform:uppercase;letter-spacing:.04em;color:rgb(141,161,186)}
+.ti .iv{font-size:16px;font-weight:300;color:rgb(212,228,255);line-height:1.2;font-variant-numeric:tabular-nums}
 .tnav{display:flex;margin-left:auto}
 .tnav button{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:rgb(212,228,255);cursor:pointer;font-size:12px;text-transform:uppercase;font-weight:300;letter-spacing:.04em;font-family:'DM Sans',sans-serif;transition:background .15s}
 .tnav button:hover{background:rgba(255,255,255,.12)}
 .tnav button:active{background:rgba(255,255,255,.25)!important}
+.tnav button:focus-visible{outline:2px dashed rgb(212,228,255);outline-offset:2px}
 .tnav button:disabled{opacity:.3;cursor:not-allowed}
-.ab{background:var(--amber);text-align:center;font-size:12px;font-weight:700;color:#1a1200;padding:5px 0;letter-spacing:.04em;flex-shrink:0}
-.eb{display:grid;grid-template-columns:152px 1fr 330px;flex:1;overflow:hidden;gap:3px}
+.ab{background:var(--amber);text-align:center;font-size:12px;font-weight:700;color:#1a1200;padding:5px 0;letter-spacing:.04em;flex-shrink:0;position:relative;top:-4px;margin-bottom:-4px}
+.eb{display:grid;grid-template-columns:112px 1fr 330px;flex:1;overflow:hidden;gap:3px}
 .eb.nav-collapsed{grid-template-columns:0 1fr 330px}
 
 /* Nav panel */
 .np{background:var(--panel);display:flex;flex-direction:column;overflow:hidden;transition:all .2s}
-.nh{background:rgb(0,30,53);color:#fff;font-size:13px;font-weight:500;text-transform:capitalize;letter-spacing:.01em;padding:8px 11px;text-align:center;flex-shrink:0}
+.nh{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;text-transform:capitalize;letter-spacing:.01em;padding:8px 11px;text-align:center;flex-shrink:0}
 .nl{overflow-y:scroll;-webkit-overflow-scrolling:touch;flex:1;padding:1px 0;display:flex;flex-direction:column;gap:0;margin-top:1px}
 .ni{display:flex;align-items:center;justify-content:flex-start;padding:8px 8px 8px 10px;width:100%;min-height:48px;border-radius:0;cursor:pointer;font-size:13px;font-weight:600;transition:background .1s;color:var(--muted);border:none;border-bottom:1px solid #e0e0e0;background:#fff;position:relative;flex-shrink:0}
 .ni:last-child{border-bottom:none}
 .ni:hover{background:#e8f0f4}
+.ni:focus-visible{outline:2px dashed rgb(0,30,53);outline-offset:-2px}
 .ni.cur{background:#fff;color:var(--text);font-weight:800}
-.ni.ans{background:#32673f;color:#fff;font-weight:700}
-.ni.cur.ans{background:#32673f;color:#fff;font-weight:800;outline:2px solid rgb(0,30,53);outline-offset:-2px}
+.ni.ans{background:rgb(0,109,91);color:#fff;font-weight:700}
+.ni.cur.ans{background:rgb(0,109,91);color:#fff;font-weight:800;outline:2px solid rgb(0,30,53);outline-offset:-2px}
 .ni-flag{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:rgb(0,30,53);display:flex;align-items:center}
 .ni.ans .ni-flag{color:rgba(255,255,255,.75)}
 
 /* Stem panel */
 .sp{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.shd{background:rgb(0,30,53);color:#fff;font-size:13px;font-weight:500;padding:8px 16px;letter-spacing:.01em;flex-shrink:0}
+.shd{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;padding:8px 16px;letter-spacing:.01em;flex-shrink:0}
 .sbody{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:1px 0}
 .stxt{font-size:15.5px;line-height:1.5;color:var(--text);margin:0 16px 16px 16px;padding-top:8px;user-select:text;-webkit-user-select:text}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.ahd{background:rgb(0,30,53);color:#fff;font-size:13px;font-weight:500;padding:8px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ahd{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;padding:8px 13px;letter-spacing:.01em;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 
 /* Finish modal */
 .finish-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:600;padding:20px}
@@ -440,17 +445,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .finish-modal-ft{padding:1rem;display:flex;gap:10px;justify-content:space-between;border-top:1px solid #e0e0e0}
 .finish-btn-continue{border-radius:5px;border-width:1.5px;border-style:solid;border-color:white;margin:4px 0;padding:8px 16px;background:#5e5e5e;color:#fff;font-family:'DM Sans',sans-serif;font-size:1.125rem;font-weight:400;cursor:pointer;transition:background .15s;min-width:48px;min-height:48px}
 .finish-btn-continue:hover{background:#484848}
+.finish-btn-continue:focus-visible{outline:2px dashed #fff;outline-offset:2px}
 .finish-btn-submit{border-radius:5px;border-width:1.5px;border-style:solid;border-color:white;margin:4px 0;padding:8px 16px;background:#b80d0d;color:#fff;font-family:'DM Sans',sans-serif;font-size:1.125rem;font-weight:400;cursor:pointer;transition:background .15s;min-width:48px;min-height:48px}
 .finish-btn-submit:hover{background:#661414}
+.finish-btn-submit:focus-visible{outline:2px dashed #fff;outline-offset:2px}
 .mb2{font-size:12px;font-weight:300;font-style:italic;color:#000;font-family:'DM Sans',sans-serif}
 .fsq{width:55px;height:55px;background:#fff;border:1.5px solid rgb(0,30,53);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgb(0,30,53);transition:all .15s;flex-shrink:0;min-width:48px;min-height:48px}
 .fsq:hover{background:#e8f0f4}
+.fsq:focus-visible{outline:2px dashed rgb(0,30,53);outline-offset:2px}
 .fsq.fl{background:rgb(0,30,53);border-color:rgb(0,30,53);color:#fff}
 .flag-row{padding:8px 13px 4px;display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-shrink:0}
 .ab2{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 8px 100px 8px;display:flex;flex-direction:column;gap:0;margin:0}
-.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:#32673f;border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;color:var(--text);transition:background .12s;width:100%}
-.ob:hover:not(:disabled){background:#fff;border-color:#32673f}
-.ob.sel{background:#32673f;border-color:#32673f;color:#fff}
+.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;color:var(--text);width:100%}
+.ob:hover:not(:disabled):not(.sel){background:rgba(0,109,91,.1)}
+.ob.sel{background:rgb(0,109,91);border-color:rgb(0,109,91);color:#fff}
+.ob.sel:hover{background:rgb(0,109,91)}
+.ob:focus-visible{outline:2px dashed rgb(0,109,91);outline-offset:2px}
 .ob:disabled{cursor:default;border-style:dashed}
 .ob.cor{background:var(--cb);border-color:var(--correct);color:var(--correct)}
 .ob.inc{background:var(--wb);border-color:var(--wrong);color:var(--wrong)}
@@ -1340,24 +1350,17 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <button className="tbb" onClick={()=>setNavOpen(o=>!o)}>
           {ExIc.overview}<span>Overview</span>
         </button>
-        <div className="ts"/>
         <button className="tbb" onClick={()=>setShowFinish(true)}>
           {ExIc.finish}<span>Finish</span>
         </button>
-        <div className="ts"/>
         <button className="tbb" onClick={()=>setShowCalc(s=>!s)}>{ExIc.calculator}<span>Calculator</span></button>
-        <div className="ts"/>
         <button className="tbb">{ExIc.colour}<span>Colour</span></button>
-        <div className="ts"/>
         <div className={`tt${warn?" w":""}`}>
           <span className="tv">{fmt(tLeft)}</span>
           <span className="tl">Time Remaining</span>
         </div>
-        <div className="ts"/>
         <button className="tbb">{ExIc.notes}<span>Notes</span></button>
-        <div className="ts"/>
         <button className="tbb">{ExIc.highlight}<span>(Un)Highlight</span></button>
-        <div className="ts"/>
         <div className="ti"><span className="iv">{username}</span><span>User ID</span></div>
         <div className="tnav">
           <button onClick={()=>setCur(c=>c-1)} disabled={cur===0}>{ExIc.previous}<span>Previous</span></button>
@@ -1368,15 +1371,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         </div>
       </div>
 
-      {/* 16px gap row with subtle grey separators between panels */}
-      <div className="tb-gap">
-        <div style={{width:152,flexShrink:0}}/>
-        <div className="tb-gap-bar"/>
-        <div style={{flex:1}}/>
-        <div className="tb-gap-bar"/>
-        <div style={{width:330,flexShrink:0}}/>
-      </div>
-
+      <div className="tb-gap"/>
       {amberMsg&&<div className="ab">{amberMsg}</div>}
 
       {/* Calculator overlay */}
