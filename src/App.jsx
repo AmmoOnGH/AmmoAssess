@@ -1749,29 +1749,29 @@ function Results({ questions, answers, flags, onReturn, onLogout }) {
 // STUDENT LANDING
 // ─────────────────────────────────────────────────────────────────────────────
 function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
-  const [selectedExamId,setSelectedExamId]=useState(user.assignedExam||"");
   const [pin,setPin]=useState("");
-  const [pinErr,setPinErr]=useState("");
   const [loadingQs,setLoadingQs]=useState(false);
 
   const assignedExam=exams.find(e=>e.id===(user.assignedExam||""))||null;
-  const selectedExam=assignedExam;
 
-  function handleBegin() {
-    if(!selectedExam){setPinErr("Please select an exam.");return;}
-    // Offline PIN check — if exam has a pin set, validate it
-    if(selectedExam.pin&&pin!==selectedExam.pin){setPinErr("Incorrect PIN.");return;}
-    setPinErr("");
+  function beginExam() {
+    if(!assignedExam||loadingQs) return;
     onPrepare();
     setLoadingQs(true);
     dbLoadQuestions()
       .then(qs=>{
-        const ordered=selectedExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
-        onStart(ordered, selectedExam.duration*60, selectedExam.name, selectedExam.id);
+        const ordered=assignedExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
+        onStart(ordered, assignedExam.duration*60, assignedExam.name, assignedExam.id);
       })
       .catch(e=>alert("Failed to load questions: "+e.message))
       .finally(()=>setLoadingQs(false));
   }
+
+  useEffect(()=>{
+    if(!assignedExam) return;
+    const t=setTimeout(beginExam, 4000);
+    return ()=>clearTimeout(t);
+  },[assignedExam?.id]);
 
   return (
     <div className="sl-wrap">
@@ -1788,21 +1788,20 @@ function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
             <strong>You are logged in as user {user.uid}</strong>
             <span>If this is not you, please log out and log back in with your provided user ID</span>
           </div>
-          <div className="sl-wait">{assignedExam?"Enter your PIN to begin":"No exam has been assigned to your account"}</div>
-          {assignedExam&&<div className="sl-f">
-            <label>Exam</label>
-            <div style={{padding:"8px 10px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:5,fontSize:14,color:"var(--text)",fontWeight:500}}>{assignedExam.name}</div>
-          </div>}
-          {selectedExam?.pin&&<div className="sl-f">
+          <div className="sl-wait">{assignedExam?"Please wait, you will be automatically connected when your exam is opened":"No exam has been assigned to your account"}</div>
+          <div className="sl-f">
+            <label>Choose exam</label>
+            <select value={assignedExam?.id||""} disabled>
+              {!assignedExam&&<option value="">— No exam assigned —</option>}
+              {assignedExam&&<option value={assignedExam.id}>{assignedExam.name}</option>}
+            </select>
+          </div>
+          <div className="sl-f">
             <label>Offline PIN</label>
-            <input type="password" value={pin} onChange={e=>{setPin(e.target.value);setPinErr("");}} placeholder="" onKeyDown={e=>e.key==="Enter"&&handleBegin()} autoFocus/>
-          </div>}
-          {pinErr&&<div style={{fontSize:12,color:"var(--wrong)",marginBottom:8,fontWeight:500}}>{pinErr}</div>}
+            <input type="password" value={pin} onChange={e=>setPin(e.target.value)} placeholder=""/>
+          </div>
           <div className="sl-actions">
-            <button className="lp-btn" onClick={handleBegin} disabled={loadingQs||!assignedExam}>
-              {loadingQs?"Loading…":"Begin Exam"}
-            </button>
-            <button className="lp-btn" style={{background:"transparent",color:"var(--teal)",border:"1px solid var(--teal)"}} onClick={onLogout}>
+            <button className="lp-btn" style={{background:"#1a56db",borderColor:"#1a56db"}} onClick={onLogout}>
               Logout
             </button>
           </div>
