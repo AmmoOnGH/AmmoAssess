@@ -389,7 +389,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 /* EXAM */
 .ew{display:flex;flex-direction:column;height:100vh;overflow:hidden;background:#b0bec5}
 .tb{background:rgb(0,30,53);color:rgb(212,228,255);display:flex;align-items:center;padding:0 8px;height:62px;gap:1px;flex-shrink:0}
-.tb-gap{height:4px;background:#fff;flex-shrink:0}
+.tb-gap{height:16px;background:#fff;flex-shrink:0}
 .tbb{display:inline-flex;flex-direction:column;justify-content:space-evenly;align-items:center;border:none;border-radius:3px;padding:8px;margin:4px 1px;min-width:48px;min-height:48px;background:none;color:rgb(212,228,255);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;letter-spacing:.04em;text-transform:uppercase;font-weight:300;transition:background .15s;white-space:nowrap}
 .tbb:hover{background:rgba(255,255,255,.12)}
 .tbb:active{background:rgba(255,255,255,.25)!important}
@@ -416,7 +416,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .np{background:var(--panel);display:flex;flex-direction:column;overflow:hidden;transition:all .2s}
 .nh{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;text-transform:capitalize;letter-spacing:.01em;padding:8px 11px;text-align:center;flex-shrink:0;border-right:16px solid rgb(165,165,165)}
 .nl{overflow-y:scroll;-webkit-overflow-scrolling:touch;flex:1;padding:1px 0;display:flex;flex-direction:column;gap:0;margin-top:1px}
-.ni{display:flex;align-items:center;justify-content:flex-start;padding:8px 8px 8px 10px;width:100%;min-height:48px;border-radius:0;cursor:pointer;font-size:13px;font-weight:600;transition:background .1s;color:var(--muted);border:none;border-bottom:1px solid #e0e0e0;background:#fff;position:relative;flex-shrink:0}
+.ni{display:flex;align-items:center;justify-content:flex-start;padding:8px 8px 8px 10px;width:100%;min-height:48px;border-radius:0;cursor:pointer;font-size:13px;font-weight:600;transition:background .1s;color:var(--muted);border:none;border-bottom:1px solid #ffffff;background:#fff;position:relative;flex-shrink:0}
 .ni:last-child{border-bottom:none}
 .ni:hover{background:#e8f0f4}
 .ni:focus{outline:2px dashed rgb(0,30,53);outline-offset:2px}
@@ -430,7 +430,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .sp{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
 .shd{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;padding:8px 16px;letter-spacing:.01em;flex-shrink:0;border-right:16px solid rgb(165,165,165)}
 .sbody{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:1px 0}
-.stxt{font-size:15.5px;line-height:1.5;color:var(--text);margin:0 16px 16px 16px;padding-top:8px;user-select:text;-webkit-user-select:text}
+.stxt{font-size:15.5px;line-height:1.5;font-weight:300;color:var(--text);margin:0 16px 16px 16px;padding-top:8px;user-select:text;-webkit-user-select:text}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
@@ -456,7 +456,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .fsq.fl{background:rgb(0,30,53);border-color:rgb(0,30,53);color:#fff}
 .flag-row{padding:8px 13px 4px;display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-shrink:0}
 .ab2{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 8px 100px 8px;display:flex;flex-direction:column;gap:0;margin:0}
-.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;color:var(--text);width:100%}
+.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:300;line-height:1.5;color:var(--text);width:100%}
 .ob:hover:not(:disabled):not(.sel){background:rgba(0,109,91,.1)}
 .ob.sel{background:rgb(0,109,91);border-color:rgb(0,109,91);color:#fff}
 .ob.sel:hover{background:rgb(0,109,91)}
@@ -1440,7 +1440,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
             {["A","B","C","D","E"].map(l=>(
               <button key={l} className={`ob${ans[q.id]===l?" sel":""}`}
                 onClick={()=>setAns(a=>({...a,[q.id]:l}))}>
-                <span className="olt">{l}</span><span>{q.options[l]}</span>
+                <span>{q.options[l]}</span>
               </button>
             ))}
           </div>
