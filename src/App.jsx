@@ -514,6 +514,16 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .em{padding:44px;text-align:center;color:var(--muted);font-size:13.5px}
 .em .t{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
 
+/* GEN MODAL */
+.gm-row{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.gm-row label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.gm-row input,.gm-row select,.gm-row textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-size:13.5px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text);box-sizing:border-box}
+.gm-row textarea{resize:vertical;min-height:60px}
+.gm-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gm-prompt{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px 12px;font-size:12px;font-family:'PT Mono',monospace;color:var(--text);white-space:pre-wrap;line-height:1.5;max-height:160px;overflow-y:auto;margin-bottom:14px}
+.gm-copy{display:flex;align-items:center;gap:8px}
+.gm-copied{font-size:12px;color:var(--teal);font-weight:600}
+
 /* LOADING SCREEN */
 .ls-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;overflow:hidden;background-color:#001a16;background-image:url('/ls-bg.webp');background-size:cover;background-position:center;background-repeat:no-repeat}
 .ls-ver{position:absolute;top:16px;right:20px;color:#fff;font-size:14px;font-weight:400;opacity:.85;z-index:1;letter-spacing:.01em}
@@ -860,6 +870,62 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GEN MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function GenModal({ onClose }) {
+  const [system,setSystem]=useState("");
+  const [pbl,setPbl]=useState("");
+  const [loNum,setLoNum]=useState("");
+  const [loDesc,setLoDesc]=useState("");
+  const [count,setCount]=useState("8");
+  const [diff,setDiff]=useState("spread");
+  const [copied,setCopied]=useState(false);
+
+  const diffLabel={spread:"Spread (2× difficulty-1, 4× difficulty-2, 2× difficulty-3)",easy:"Easy focus (4× difficulty-1, 3× difficulty-2, 1× difficulty-3)",hard:"Hard focus (1× difficulty-1, 3× difficulty-2, 4× difficulty-3)"}[diff]||diff;
+
+  const prompt=`/gen-questions
+
+System: ${system||"[system]"}
+PBL Block: ${pbl||"[e.g. PBL3]"}
+LO: ${loNum||"[LO#]"} — ${loDesc||"[LO description]"}
+Questions: ${count||8}
+Difficulty: ${diffLabel}`;
+
+  function copyPrompt(){
+    navigator.clipboard.writeText(prompt).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);});
+  }
+
+  return (
+    <Modal title="Generate Questions" onClose={onClose} footer={
+      <div className="gm-copy">
+        <button className="btn ba" onClick={copyPrompt}>{Ic.upload} Copy Prompt</button>
+        {copied&&<span className="gm-copied">✓ Copied — paste into Claude Code</span>}
+      </div>
+    }>
+      <div className="gm-2">
+        <div className="gm-row"><label>System</label><input value={system} onChange={e=>setSystem(e.target.value)} placeholder="e.g. Gastrointestinal"/></div>
+        <div className="gm-row"><label>PBL Block</label><input value={pbl} onChange={e=>setPbl(e.target.value)} placeholder="e.g. PBL3"/></div>
+      </div>
+      <div className="gm-2">
+        <div className="gm-row"><label>LO Number</label><input value={loNum} onChange={e=>setLoNum(e.target.value)} placeholder="e.g. LO4"/></div>
+        <div className="gm-row"><label>Questions</label><input type="number" min="1" max="30" value={count} onChange={e=>setCount(e.target.value)}/></div>
+      </div>
+      <div className="gm-row"><label>LO Description</label><input value={loDesc} onChange={e=>setLoDesc(e.target.value)} placeholder="e.g. Describe the management of acute pancreatitis"/></div>
+      <div className="gm-row">
+        <label>Difficulty Mix</label>
+        <select value={diff} onChange={e=>setDiff(e.target.value)}>
+          <option value="spread">Spread (30 / 40 / 30)</option>
+          <option value="easy">Easy focus (50 / 37 / 13)</option>
+          <option value="hard">Hard focus (13 / 37 / 50)</option>
+        </select>
+      </div>
+      <div style={{marginBottom:6,fontSize:12,fontWeight:600,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".04em"}}>Preview</div>
+      <div className="gm-prompt">{prompt}</div>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — QUESTIONS TAB
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminQ({ questions, setQuestions }) {
@@ -867,6 +933,7 @@ function AdminQ({ questions, setQuestions }) {
   const [showAdd,setShowAdd]=useState(false);
   const [editing,setEditing]=useState(null);
   const [showAns,setShowAns]=useState(false);
+  const [showGen,setShowGen]=useState(false);
   const fileRef=useRef();
   const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort();
   const filtered=tagF?questions.filter(q=>q.tags.includes(tagF)):questions;
@@ -916,6 +983,7 @@ function AdminQ({ questions, setQuestions }) {
         <button className="btn bw" onClick={()=>fileRef.current.click()}>{Ic.upload} Import JSON</button>
         <button className="btn bw" onClick={expJSON}>{Ic.download} Export JSON</button>
         <button className="btn bw" onClick={()=>setShowAns(s=>!s)}>{showAns?Ic.eyeOff:Ic.eye} {showAns?"Hide answers":"Show answers"}</button>
+        <button className="btn bw" onClick={()=>setShowGen(true)}>{Ic.plus} Generate</button>
         <button className="btn ba" style={{marginLeft:"auto"}} onClick={()=>setShowAdd(true)}>{Ic.plus} Add Question</button>
       </div>
       {allTags.length>0&&(
@@ -943,6 +1011,7 @@ function AdminQ({ questions, setQuestions }) {
             </div>
           ))}
       </div>
+      {showGen&&<GenModal onClose={()=>setShowGen(false)}/>}
       {(showAdd||editing)&&<QModal initial={editing} onSave={saveQ} onClose={()=>{setShowAdd(false);setEditing(null);}}/>}
     </div>
   );
