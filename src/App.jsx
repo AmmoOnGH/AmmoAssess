@@ -514,9 +514,6 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dash
 .em{padding:44px;text-align:center;color:var(--muted);font-size:13.5px}
 .em .t{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
 
-/* STUDENT LANDING */
-.sl-wrap{min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
-.sl-bar{background:var(--td);color:#fff;padding:13px 22px;display:flex;align-items:center;justify-content:space-between}
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -580,7 +577,7 @@ function LoginPage({ onLogin }) {
   return (
     <div className="lp">
       <style>{CSS}</style>
-      <div className="lp-ver">p1b-1.13</div>
+      <div className="lp-ver">p1b-1.14</div>
       <div className="lp-bg-fallback"/>
       <div className="lp-bg"/>
       <div className="lp-card">
@@ -1733,7 +1730,7 @@ function StudentLanding({ user, exams, onStart, onLogout }) {
       <style>{CSS}</style>
       <div className="lp-bg-fallback"/>
       <div className="lp-bg"/>
-      <div className="lp-ver">p1b-1.13</div>
+      <div className="lp-ver">p1b-1.14</div>
       <div className="sl-card">
         <div className="sl-card-hdr">
           <div className="lp-logo">ammo/<em>assess</em></div>
@@ -1743,7 +1740,7 @@ function StudentLanding({ user, exams, onStart, onLogout }) {
             <strong>You are logged in as user {user.uid}</strong>
             <span>If this is not you, please log out and log back in with your provided user ID</span>
           </div>
-          <div className="sl-wait">Please wait, you will be automatically connected when your exam is opened</div>
+          <div className="sl-wait">Select an exam below and enter your PIN to begin</div>
           <div className="sl-f">
             <label>Choose exam</label>
             <select value={selectedExamId} onChange={e=>{setSelectedExamId(e.target.value);setPinErr("");}}>
@@ -1751,10 +1748,10 @@ function StudentLanding({ user, exams, onStart, onLogout }) {
               {exams.map(ex=><option key={ex.id} value={ex.id}>{ex.name}</option>)}
             </select>
           </div>
-          <div className="sl-f">
+          {selectedExam?.pin&&<div className="sl-f">
             <label>Offline PIN</label>
-            <input type="password" value={pin} onChange={e=>{setPin(e.target.value);setPinErr("");}} placeholder="" onKeyDown={e=>e.key==="Enter"&&handleBegin()}/>
-          </div>
+            <input type="password" value={pin} onChange={e=>{setPin(e.target.value);setPinErr("");}} placeholder="" onKeyDown={e=>e.key==="Enter"&&handleBegin()} autoFocus/>
+          </div>}
           {pinErr&&<div style={{fontSize:12,color:"var(--wrong)",marginBottom:8,fontWeight:500}}>{pinErr}</div>}
           <div className="sl-actions">
             <button className="lp-btn" onClick={handleBegin} disabled={loadingQs||!selectedExamId}>
