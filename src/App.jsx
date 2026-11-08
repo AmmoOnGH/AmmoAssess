@@ -1095,7 +1095,6 @@ function AdminUsers({ exams }) {
                     <button className="ib dg" style={{marginLeft:"auto"}} onClick={()=>delU(u)}>{Ic.trash}</button>
                   </div>
                   {u.role==="student"&&<div className="uex">{Ic.exam}{ex?ex.name:<em style={{fontStyle:"italic"}}>No exam assigned</em>}</div>}
-                  <div style={{fontSize:11,color:"var(--muted)"}}>Credentials stored securely</div>
                 </div>
               );
             })}
@@ -1755,7 +1754,8 @@ function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
   const [pinErr,setPinErr]=useState("");
   const [loadingQs,setLoadingQs]=useState(false);
 
-  const selectedExam=exams.find(e=>e.id===selectedExamId)||null;
+  const assignedExam=exams.find(e=>e.id===(user.assignedExam||""))||null;
+  const selectedExam=assignedExam;
 
   function handleBegin() {
     if(!selectedExam){setPinErr("Please select an exam.");return;}
@@ -1788,21 +1788,18 @@ function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
             <strong>You are logged in as user {user.uid}</strong>
             <span>If this is not you, please log out and log back in with your provided user ID</span>
           </div>
-          <div className="sl-wait">Select an exam below and enter your PIN to begin</div>
-          <div className="sl-f">
-            <label>Choose exam</label>
-            <select value={selectedExamId} onChange={e=>{setSelectedExamId(e.target.value);setPinErr("");}}>
-              <option value="">— Select an exam —</option>
-              {exams.map(ex=><option key={ex.id} value={ex.id}>{ex.name}</option>)}
-            </select>
-          </div>
+          <div className="sl-wait">{assignedExam?"Enter your PIN to begin":"No exam has been assigned to your account"}</div>
+          {assignedExam&&<div className="sl-f">
+            <label>Exam</label>
+            <div style={{padding:"8px 10px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:5,fontSize:14,color:"var(--text)",fontWeight:500}}>{assignedExam.name}</div>
+          </div>}
           {selectedExam?.pin&&<div className="sl-f">
             <label>Offline PIN</label>
             <input type="password" value={pin} onChange={e=>{setPin(e.target.value);setPinErr("");}} placeholder="" onKeyDown={e=>e.key==="Enter"&&handleBegin()} autoFocus/>
           </div>}
           {pinErr&&<div style={{fontSize:12,color:"var(--wrong)",marginBottom:8,fontWeight:500}}>{pinErr}</div>}
           <div className="sl-actions">
-            <button className="lp-btn" onClick={handleBegin} disabled={loadingQs||!selectedExamId}>
+            <button className="lp-btn" onClick={handleBegin} disabled={loadingQs||!assignedExam}>
               {loadingQs?"Loading…":"Begin Exam"}
             </button>
             <button className="lp-btn" style={{background:"transparent",color:"var(--teal)",border:"1px solid var(--teal)"}} onClick={onLogout}>
