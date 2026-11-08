@@ -297,7 +297,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .sl-user-banner{background:#dbe9f7;border:1px solid #b3cfe8;padding:12px 16px;margin-bottom:20px;border-radius:2px}
 .sl-user-banner strong{display:block;font-size:14px;font-weight:700;color:#1a3a4a;margin-bottom:3px}
 .sl-user-banner span{font-size:13px;color:#2a5070}
-.sl-wait{font-size:20px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:24px}
+.sl-wait{font-size:20px;font-weight:600;color:var(--text);line-height:1.3;margin-bottom:24px}
 .sl-f{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
 .sl-f label{font-size:14px;font-weight:400;color:var(--text)}
 .sl-f select{border:1.5px solid var(--border);border-radius:4px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:#fff;cursor:pointer;appearance:auto}
@@ -520,7 +520,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .ls-center{position:relative;z-index:1;text-align:center;color:#fff;padding:0 60px;max-width:700px}
 .ls-title{font-size:36px;font-weight:400;margin-bottom:18px;letter-spacing:-.01em;line-height:1.2}
 .ls-sub{font-size:16px;font-weight:300;opacity:.82;line-height:1.6;margin-bottom:2px}
-.ls-pct{font-size:96px;font-weight:500;margin-top:44px;letter-spacing:-.03em;line-height:1}
+.ls-pct{font-size:72px;font-weight:300;margin-top:44px;letter-spacing:-.02em;line-height:1}
 
 `;
 
