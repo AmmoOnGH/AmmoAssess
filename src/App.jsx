@@ -514,7 +514,49 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .em{padding:44px;text-align:center;color:var(--muted);font-size:13.5px}
 .em .t{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
 
+/* LOADING SCREEN */
+.ls-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;overflow:hidden;background:#001a16}
+.ls-wrap::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 28% 55%, rgba(0,195,175,0.28) 0%, rgba(0,100,88,0.35) 35%, rgba(0,30,22,0.75) 70%, rgba(0,10,8,0.95) 100%)}
+.ls-wrap::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg, rgba(0,170,155,0.12) 0%, transparent 50%, rgba(0,8,6,0.4) 100%)}
+.ls-ver{position:absolute;top:16px;right:20px;color:#fff;font-size:14px;font-weight:400;opacity:.85;z-index:1;letter-spacing:.01em}
+.ls-center{position:relative;z-index:1;text-align:center;color:#fff;padding:0 60px;max-width:700px}
+.ls-title{font-size:36px;font-weight:400;margin-bottom:18px;letter-spacing:-.01em;line-height:1.2}
+.ls-sub{font-size:16px;font-weight:300;opacity:.82;line-height:1.6;margin-bottom:2px}
+.ls-pct{font-size:96px;font-weight:700;margin-top:44px;letter-spacing:-.03em;line-height:1}
+
 `;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOADING SCREEN
+// ─────────────────────────────────────────────────────────────────────────────
+function LoadingScreen({ onReady }) {
+  const [pct,setPct]=useState(0);
+  useEffect(()=>{
+    const steps=[19,38,52,67,79,88,94,98,100];
+    let i=0;
+    const delays=[90,80,75,85,70,80,65,75,100];
+    function next(){
+      if(i>=steps.length){setTimeout(onReady,120);return;}
+      setPct(steps[i]);
+      const d=delays[i];i++;
+      setTimeout(next,d);
+    }
+    const t=setTimeout(next,180);
+    return ()=>clearTimeout(t);
+  },[onReady]);
+  return (
+    <div className="ls-wrap">
+      <style>{CSS}</style>
+      <div className="ls-ver">p1b-1.14</div>
+      <div className="ls-center">
+        <div className="ls-title">Preparing exam, please wait…</div>
+        <div className="ls-sub">Preparing can take several minutes depending on your computer specification</div>
+        <div className="ls-sub">30MB storage used of 2,147MB available</div>
+        <div className="ls-pct">{pct}%</div>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SHARED MODAL
@@ -1801,7 +1843,7 @@ export default function App() {
   function startExam(qs,time,name="",id=""){
     setExamQs(shuffle(qs));setExamTime(time);
     setExamMeta({name,id});setExamStartTime(Date.now());
-    setScreen("exam");
+    setScreen("loading");
   }
   function finish(a,f){
     // Build result record
@@ -1848,6 +1890,7 @@ export default function App() {
     return <StudentLanding user={user} exams={allExams} onStart={startExam} onLogout={logout}/>;
   }
 
+  if(screen==="loading") return <LoadingScreen onReady={()=>setScreen("exam")}/>;
   if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome}/>;
   if(screen==="results") return <Results questions={examQs} answers={results.a} flags={results.f} onReturn={returnHome} onLogout={logout}/>;
   return null;
