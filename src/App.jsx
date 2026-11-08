@@ -515,35 +515,40 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .em .t{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
 
 /* LOADING SCREEN */
-.ls-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;overflow:hidden;background:#001a16}
-.ls-wrap::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 28% 55%, rgba(0,195,175,0.28) 0%, rgba(0,100,88,0.35) 35%, rgba(0,30,22,0.75) 70%, rgba(0,10,8,0.95) 100%)}
-.ls-wrap::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg, rgba(0,170,155,0.12) 0%, transparent 50%, rgba(0,8,6,0.4) 100%)}
+.ls-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-family:'DM Sans',sans-serif;overflow:hidden;background:#001a16 url('/ls-bg.webp') center/cover no-repeat}
 .ls-ver{position:absolute;top:16px;right:20px;color:#fff;font-size:14px;font-weight:400;opacity:.85;z-index:1;letter-spacing:.01em}
 .ls-center{position:relative;z-index:1;text-align:center;color:#fff;padding:0 60px;max-width:700px}
 .ls-title{font-size:36px;font-weight:400;margin-bottom:18px;letter-spacing:-.01em;line-height:1.2}
 .ls-sub{font-size:16px;font-weight:300;opacity:.82;line-height:1.6;margin-bottom:2px}
-.ls-pct{font-size:96px;font-weight:700;margin-top:44px;letter-spacing:-.03em;line-height:1}
+.ls-pct{font-size:96px;font-weight:500;margin-top:44px;letter-spacing:-.03em;line-height:1}
 
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOADING SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-function LoadingScreen({ onReady }) {
+function LoadingScreen({ dataReady, onReady }) {
   const [pct,setPct]=useState(0);
+  const [animDone,setAnimDone]=useState(false);
+  const readyRef=useRef(false);
+
   useEffect(()=>{
-    const steps=[19,38,52,67,79,88,94,98,100];
+    if(animDone&&dataReady&&!readyRef.current){readyRef.current=true;onReady();}
+  },[animDone,dataReady,onReady]);
+
+  useEffect(()=>{
+    const steps=[24,51,73,91,100];
+    const delays=[95,90,85,90,110];
     let i=0;
-    const delays=[90,80,75,85,70,80,65,75,100];
     function next(){
-      if(i>=steps.length){setTimeout(onReady,120);return;}
+      if(i>=steps.length){setAnimDone(true);return;}
       setPct(steps[i]);
       const d=delays[i];i++;
       setTimeout(next,d);
     }
-    const t=setTimeout(next,180);
-    return ()=>clearTimeout(t);
-  },[onReady]);
+    next();
+  },[]);
+
   return (
     <div className="ls-wrap">
       <style>{CSS}</style>
@@ -1744,7 +1749,7 @@ function Results({ questions, answers, flags, onReturn, onLogout }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STUDENT LANDING
 // ─────────────────────────────────────────────────────────────────────────────
-function StudentLanding({ user, exams, onStart, onLogout }) {
+function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
   const [selectedExamId,setSelectedExamId]=useState(user.assignedExam||"");
   const [pin,setPin]=useState("");
   const [pinErr,setPinErr]=useState("");
@@ -1757,6 +1762,7 @@ function StudentLanding({ user, exams, onStart, onLogout }) {
     // Offline PIN check — if exam has a pin set, validate it
     if(selectedExam.pin&&pin!==selectedExam.pin){setPinErr("Incorrect PIN.");return;}
     setPinErr("");
+    onPrepare();
     setLoadingQs(true);
     dbLoadQuestions()
       .then(qs=>{
@@ -1824,6 +1830,7 @@ export default function App() {
   const [results,setResults]=useState(null);
   const [studentExam,setStudentExam]=useState(null);
   const [loadingExam,setLoadingExam]=useState(false);
+  const [examDataReady,setExamDataReady]=useState(false);
 
   // Seed default admin into Supabase on first load
   useEffect(()=>{ dbSeedAdmin(); },[]);
@@ -1840,10 +1847,11 @@ export default function App() {
 
   function login(u){setUser(u);setScreen(u.role==="admin"?"admin":"student");}
   function logout(){clearSession();setUser(null);setScreen("login");setResults(null);setStudentExam(null);}
+  function prepareExam(){setExamDataReady(false);setScreen("loading");}
   function startExam(qs,time,name="",id=""){
     setExamQs(shuffle(qs));setExamTime(time);
     setExamMeta({name,id});setExamStartTime(Date.now());
-    setScreen("loading");
+    setExamDataReady(true);
   }
   function finish(a,f){
     // Build result record
@@ -1887,10 +1895,10 @@ export default function App() {
       </div>
     );
     const allExams=studentExam||[];
-    return <StudentLanding user={user} exams={allExams} onStart={startExam} onLogout={logout}/>;
+    return <StudentLanding user={user} exams={allExams} onPrepare={prepareExam} onStart={startExam} onLogout={logout}/>;
   }
 
-  if(screen==="loading") return <LoadingScreen onReady={()=>setScreen("exam")}/>;
+  if(screen==="loading") return <LoadingScreen dataReady={examDataReady} onReady={()=>setScreen("exam")}/>;
   if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome}/>;
   if(screen==="results") return <Results questions={examQs} answers={results.a} flags={results.f} onReturn={returnHome} onLogout={logout}/>;
   return null;
