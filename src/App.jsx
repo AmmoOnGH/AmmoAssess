@@ -1769,7 +1769,7 @@ function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
 
   useEffect(()=>{
     if(!assignedExam) return;
-    const t=setTimeout(beginExam, 4000);
+    const t=setTimeout(beginExam, 5500);
     return ()=>clearTimeout(t);
   },[assignedExam?.id]);
 
@@ -1801,7 +1801,7 @@ function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
             <input type="password" value={pin} onChange={e=>setPin(e.target.value)} placeholder=""/>
           </div>
           <div className="sl-actions">
-            <button className="lp-btn" style={{background:"#1a56db",borderColor:"#1a56db"}} onClick={onLogout}>
+            <button className="lp-btn" style={{background:"rgb(0,30,53)",borderColor:"rgb(0,30,53)"}} onClick={onLogout}>
               Logout
             </button>
           </div>
