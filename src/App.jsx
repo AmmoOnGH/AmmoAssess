@@ -408,7 +408,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .tnav button:active{background:rgba(255,255,255,.25)!important}
 .tnav button:focus{outline:2px dashed rgba(212,228,255,0.9);outline-offset:2px}
 .tnav button:disabled{opacity:.3;cursor:not-allowed}
-.ab{background:var(--amber);text-align:center;font-size:12px;font-weight:700;color:#1a1200;padding:5px 0;letter-spacing:.04em;flex-shrink:0;position:relative;top:-4px;margin-bottom:-4px}
+.ab{background:var(--amber);text-align:center;font-size:12px;font-weight:700;color:#1a1200;padding:5px 0;letter-spacing:.04em;flex-shrink:0;position:relative;top:-16px;margin-bottom:-16px}
 .eb{display:grid;grid-template-columns:112px 1fr 330px;flex:1;overflow:hidden;gap:0}
 .eb.nav-collapsed{grid-template-columns:0 1fr 330px}
 
@@ -430,7 +430,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .sp{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
 .shd{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;padding:8px 16px;letter-spacing:.01em;flex-shrink:0;border-right:16px solid rgb(165,165,165)}
 .sbody{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:1px 0}
-.stxt{font-size:15.5px;line-height:1.5;font-weight:300;color:var(--text);margin:0 16px 16px 16px;padding-top:8px;user-select:text;-webkit-user-select:text}
+.stxt{font-size:17.5px;line-height:1.5;font-weight:300;color:var(--text);margin:0 16px 16px 16px;padding-top:8px;user-select:text;-webkit-user-select:text}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
@@ -456,7 +456,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .fsq.fl{background:rgb(0,30,53);border-color:rgb(0,30,53);color:#fff}
 .flag-row{padding:8px 13px 4px;display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-shrink:0}
 .ab2{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 8px 100px 8px;display:flex;flex-direction:column;gap:0;margin:0}
-.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:300;line-height:1.5;color:var(--text);width:100%}
+.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:300;line-height:1.5;color:var(--text);width:100%}
 .ob:hover:not(:disabled):not(.sel){background:rgba(0,109,91,.1)}
 .ob.sel{background:rgb(0,109,91);border-color:rgb(0,109,91);color:#fff}
 .ob.sel:hover{background:rgb(0,109,91)}
@@ -1433,7 +1433,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
           <div className="flag-row">
             <span className="mb2">[1 mark]</span>
             <button className={`fsq${flags[q.id]?" fl":""}`} onClick={()=>setFlags(f=>({...f,[q.id]:!f[q.id]}))}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill={flags[q.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill={flags[q.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
             </button>
           </div>
           <div className="ab2">
