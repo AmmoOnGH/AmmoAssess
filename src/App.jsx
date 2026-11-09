@@ -747,6 +747,7 @@ function UModal({ onSave, onClose, exams }) {
 function BuilderModal({ questions, initial, onSave, onClose }) {
   const [name,setName]=useState(initial?.name||"");
   const [dur,setDur]=useState(initial?.duration||150);
+  const [practiceMode,setPracticeMode]=useState(initial?.practiceMode||false);
   const [sel,setSel]=useState(new Set(initial?.questionIds||[]));
   const [search,setSearch]=useState("");
   const [tagF,setTagF]=useState(null);
@@ -797,7 +798,7 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
   function save() {
     if(!name.trim())return alert("Exam name required.");
     if(sel.size===0)return alert("Select at least one question.");
-    onSave({id:initial?.id||genId(),name:name.trim(),duration:dur,questionIds:[...sel],createdAt:initial?.createdAt||new Date().toISOString().slice(0,10)});
+    onSave({id:initial?.id||genId(),name:name.trim(),duration:dur,practiceMode,questionIds:[...sel],createdAt:initial?.createdAt||new Date().toISOString().slice(0,10)});
   }
 
   const allPoolSelected=pool.length>0&&pool.every(q=>sel.has(q.id));
@@ -810,6 +811,10 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 150px",gap:10}}>
             <div className="fi"><label>Exam Name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Mock Exam 1 – Upper GI"/></div>
             <div className="fi"><label>Duration (min)</label><input type="number" min={5} max={360} value={dur} onChange={e=>setDur(Number(e.target.value))}/></div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"4px 2px"}}>
+            <input type="checkbox" id="pm-toggle" checked={practiceMode} onChange={e=>setPracticeMode(e.target.checked)} style={{width:16,height:16,cursor:"pointer",flexShrink:0,accentColor:"var(--teal)"}}/>
+            <label htmlFor="pm-toggle" style={{fontSize:13,cursor:"pointer",fontWeight:500,color:"var(--text)"}}>Practice mode — reveal answer &amp; explanation after each question</label>
           </div>
           <div className="bl">
             <div className="card">
@@ -1091,7 +1096,10 @@ function AdminEx({ questions, exams, setExams }) {
           :exams.map((ex,i)=>(
             <div key={ex.id} className="qtr ecc" onClick={()=>{setEditEx(ex);setShowB(true);}}>
               <span className="qnum">{i+1}</span>
-              <span className="qstem" style={{fontWeight:600}}>{ex.name}</span>
+              <span className="qstem" style={{fontWeight:600,display:"flex",alignItems:"center",gap:7}}>
+                {ex.name}
+                {ex.practiceMode&&<span style={{fontSize:9.5,fontWeight:700,background:"#e8f5e9",color:"var(--green)",border:"1px solid #a5d6a7",borderRadius:20,padding:"1px 7px",flexShrink:0}}>Practice</span>}
+              </span>
               <span style={{fontSize:12}}>{ex.questionIds.length} Q</span>
               <span style={{fontSize:12}}>{ex.duration} min</span>
               <span className="qact" onClick={e=>e.stopPropagation()}>
@@ -1394,10 +1402,11 @@ function getAmberMsg(timeLeft, totalTime) {
   return null;
 }
 
-function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
+function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMode }) {
   const [cur,setCur]=useState(0);
   const [ans,setAns]=useState({});
   const [flags,setFlags]=useState({});
+  const [submitted,setSubmitted]=useState({});
   const [tLeft,setTLeft]=useState(totalTime);
   const [amberMsg,setAmberMsg]=useState(`Exam time: ${Math.round(totalTime/60)} minutes`);
   const [showCalc,setShowCalc]=useState(false);
@@ -1544,6 +1553,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
         <div className="ap">
           <div className="ahd">
             <span>Answer</span>
+            {practiceMode&&<span style={{fontSize:10,fontWeight:700,background:"rgba(46,125,50,.25)",color:"#c8e6c9",borderRadius:20,padding:"2px 9px",letterSpacing:".05em"}}>PRACTICE</span>}
           </div>
           <div className="flag-row">
             <span className="mb2">[1 mark]</span>
@@ -1552,12 +1562,40 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit }) {
             </button>
           </div>
           <div className="ab2">
-            {["A","B","C","D","E"].map(l=>(
-              <button key={l} className={`ob${ans[q.id]===l?" sel":""}`}
-                onClick={()=>setAns(a=>({...a,[q.id]:l}))}>
-                <span>{q.options[l]}</span>
+            {["A","B","C","D","E"].map(l=>{
+              const isSubmittedQ=practiceMode&&submitted[q.id];
+              const curAns=ans[q.id];
+              let extraCls=""; let icon=null;
+              if(isSubmittedQ){
+                if(l===q.answer){extraCls=" cor";icon=Ic.check;}
+                else if(l===curAns){extraCls=" inc";icon=Ic.x;}
+              }
+              const isSel=!isSubmittedQ&&curAns===l;
+              return(
+                <button key={l}
+                  className={`ob${isSel?" sel":""}${extraCls}`}
+                  onClick={()=>{if(isSubmittedQ)return;setAns(a=>({...a,[q.id]:l}));}}
+                  disabled={isSubmittedQ}>
+                  <span style={{flex:1}}>{q.options[l]}</span>
+                  {icon&&<span className="oic">{icon}</span>}
+                </button>
+              );
+            })}
+            {practiceMode&&!submitted[q.id]&&(
+              <button
+                className="btn ba"
+                style={{marginTop:8,width:"100%",justifyContent:"center",fontSize:14,padding:"11px 16px",minHeight:48,borderRadius:5,fontWeight:700}}
+                disabled={!ans[q.id]}
+                onClick={()=>{if(ans[q.id])setSubmitted(s=>({...s,[q.id]:true}));}}>
+                Submit answer
               </button>
-            ))}
+            )}
+            {practiceMode&&submitted[q.id]&&q.explanation&&(
+              <div style={{margin:"10px 0 4px",background:"#eef4ff",border:"1.5px solid #b3cef5",borderRadius:5,padding:"13px 14px"}}>
+                <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--teal)",marginBottom:7}}>Explanation</div>
+                <div style={{fontSize:14,lineHeight:1.65,color:"var(--text)"}}>{q.explanation}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1830,7 +1868,7 @@ function StudentLanding({ user, exams, onPrepare, onStart, onLogout }) {
     dbLoadQuestions()
       .then(qs=>{
         const ordered=assignedExam.questionIds.map(id=>qs.find(q=>q.id===id)).filter(Boolean);
-        onStart(ordered, assignedExam.duration*60, assignedExam.name, assignedExam.id);
+        onStart(ordered, assignedExam.duration*60, assignedExam.name, assignedExam.id, assignedExam.practiceMode||false);
       })
       .catch(e=>alert("Failed to load questions: "+e.message))
       .finally(()=>setLoadingQs(false));
@@ -1913,9 +1951,9 @@ export default function App() {
   function login(u){setUser(u);setScreen(u.role==="admin"?"admin":"student");}
   function logout(){clearSession();setUser(null);setScreen("login");setResults(null);setStudentExam(null);}
   function prepareExam(){setExamDataReady(false);setScreen("loading");}
-  function startExam(qs,time,name="",id=""){
+  function startExam(qs,time,name="",id="",practiceMode=false){
     setExamQs(shuffle(qs));setExamTime(time);
-    setExamMeta({name,id});setExamStartTime(Date.now());
+    setExamMeta({name,id,practiceMode});setExamStartTime(Date.now());
     setExamDataReady(true);
   }
   function finish(a,f){
@@ -1964,7 +2002,7 @@ export default function App() {
   }
 
   if(screen==="loading") return <LoadingScreen dataReady={examDataReady} onReady={()=>setScreen("exam")}/>;
-  if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome}/>;
+  if(screen==="exam") return <ExamMode questions={examQs} totalTime={examTime} username={user?.uid||""} onFinish={finish} onExit={returnHome} practiceMode={examMeta.practiceMode||false}/>;
   if(screen==="results") return <Results questions={examQs} answers={results.a} flags={results.f} onReturn={returnHome} onLogout={logout}/>;
   return null;
 }
