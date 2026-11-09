@@ -756,7 +756,11 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
   const dragRef=useRef({active:false,startIdx:null,mode:null,moved:false});
   const poolRef=useRef();
 
-  const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort();
+  const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort((a,b)=>{
+    const rank=t=>t.match(/^SRS/i)?0:t.match(/^PBL/i)?1:2;
+    const ra=rank(a),rb=rank(b);
+    return ra!==rb?ra-rb:a.localeCompare(b);
+  });
   const pool=questions.filter(q=>{
     const tok=!tagF||q.tags.includes(tagF);
     const stok=!search||q.stem.toLowerCase().includes(search.toLowerCase());
@@ -940,7 +944,11 @@ function AdminQ({ questions, setQuestions }) {
   const [showAns,setShowAns]=useState(false);
   const [showGen,setShowGen]=useState(false);
   const fileRef=useRef();
-  const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort();
+  const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort((a,b)=>{
+    const rank=t=>t.match(/^SRS/i)?0:t.match(/^PBL/i)?1:2;
+    const ra=rank(a),rb=rank(b);
+    return ra!==rb?ra-rb:a.localeCompare(b);
+  });
   const filtered=tagF?questions.filter(q=>q.tags.includes(tagF)):questions;
   function saveQ(q){
     dbSaveQuestion(q)
@@ -1583,8 +1591,8 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
             })}
             {practiceMode&&!submitted[q.id]&&(
               <button
-                className="btn ba"
-                style={{marginTop:8,width:"100%",justifyContent:"center",fontSize:14,padding:"11px 16px",minHeight:48,borderRadius:5,fontWeight:700}}
+                className="btn"
+                style={{marginTop:8,width:"100%",justifyContent:"center",fontSize:14,padding:"11px 16px",minHeight:48,borderRadius:5,fontWeight:700,background:"#1a3a4a",color:"#fff"}}
                 disabled={!ans[q.id]}
                 onClick={()=>{if(ans[q.id])setSubmitted(s=>({...s,[q.id]:true}));}}>
                 Submit answer
