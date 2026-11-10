@@ -767,19 +767,28 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
   const [practiceMode,setPracticeMode]=useState(initial?.practiceMode||false);
   const [sel,setSel]=useState(new Set(initial?.questionIds||[]));
   const [search,setSearch]=useState("");
-  const [tagF,setTagF]=useState(null);
+  const [tagF,setTagF]=useState(new Set());
+  const [showMoreTags,setShowMoreTags]=useState(false);
 
-  // Drag-select state
+  // Drag-select state (questions)
   const dragRef=useRef({active:false,startIdx:null,mode:null,moved:false});
   const poolRef=useRef();
+  // Drag-select state (tags)
+  const tagDragRef=useRef({active:false});
 
   const allTags=[...new Set(questions.flatMap(q=>q.tags))].sort((a,b)=>{
     const rank=t=>t.match(/^SRS/i)?0:t.match(/^PBL/i)?1:2;
     const ra=rank(a),rb=rank(b);
-    return ra!==rb?ra-rb:a.localeCompare(b);
+    if(ra!==rb)return ra-rb;
+    if(ra===0){const n=t=>{const m=t.match(/SRS.?([\d.]+)/i);return m?parseFloat(m[1]):999;};return n(a)-n(b);}
+    if(ra===1){const bn=t=>{const m=t.match(/PBL.?(\d+)/i);return m?parseInt(m[1]):999;};const ln=t=>{const m=t.match(/LO.?(\d+)/i);return m?parseInt(m[1]):999;};const d=bn(a)-bn(b);return d!==0?d:ln(a)-ln(b);}
+    return a.localeCompare(b);
   });
+  const srsPblTags=allTags.filter(t=>t.match(/^SRS|^PBL/i));
+  const otherTags=allTags.filter(t=>!t.match(/^SRS|^PBL/i));
+
   const pool=questions.filter(q=>{
-    const tok=!tagF||q.tags.includes(tagF);
+    const tok=tagF.size===0||[...tagF].some(t=>q.tags.includes(t));
     const stok=!search||q.stem.toLowerCase().includes(search.toLowerCase());
     return tok&&stok;
   });
@@ -791,6 +800,18 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
     pool.forEach(q=>allIn?n.delete(q.id):n.add(q.id));
     return n;
   });
+
+  // Tag drag handlers
+  function onTagMouseDown(e,t){
+    e.preventDefault();
+    tagDragRef.current={active:true};
+    setTagF(s=>{const n=new Set(s);n.has(t)?n.delete(t):n.add(t);return n;});
+  }
+  function onTagMouseEnter(t){
+    if(!tagDragRef.current.active)return;
+    setTagF(s=>{const n=new Set(s);n.add(t);return n;});
+  }
+  function onTagMouseUp(){tagDragRef.current.active=false;}
 
   // Mouse drag handlers — single click uses onClick; drag suppresses onClick via moved flag
   function onMouseDown(e,id,idx){
@@ -850,9 +871,11 @@ function BuilderModal({ questions, initial, onSave, onClose }) {
                 </div>
               </div>
               {allTags.length>0&&(
-                <div style={{padding:"7px 10px",display:"flex",gap:4,flexWrap:"wrap",borderBottom:"1px solid var(--border)"}}>
-                  <button className={`tc${!tagF?" on":""}`} onClick={()=>setTagF(null)}>All</button>
-                  {allTags.map(t=><button key={t} className={`tc${tagF===t?" on":""}`} onClick={()=>setTagF(tagF===t?null:t)}>{t}</button>)}
+                <div style={{padding:"7px 10px",display:"flex",gap:4,flexWrap:"wrap",borderBottom:"1px solid var(--border)"}} onMouseUp={onTagMouseUp} onMouseLeave={onTagMouseUp}>
+                  <button className={`tc${tagF.size===0?" on":""}`} onClick={()=>setTagF(new Set())}>All</button>
+                  {srsPblTags.map(t=><button key={t} className={`tc${tagF.has(t)?" on":""}`} onMouseDown={e=>onTagMouseDown(e,t)} onMouseEnter={()=>onTagMouseEnter(t)}>{t}</button>)}
+                  {otherTags.length>0&&<button className="tc" style={{borderStyle:"dashed"}} onClick={()=>setShowMoreTags(s=>!s)}>{showMoreTags?"Less ▲":"More ▼"}</button>}
+                  {showMoreTags&&otherTags.map(t=><button key={t} className={`tc${tagF.has(t)?" on":""}`} onMouseDown={e=>onTagMouseDown(e,t)} onMouseEnter={()=>onTagMouseEnter(t)}>{t}</button>)}
                 </div>
               )}
               <div className="bpool" ref={poolRef} style={{userSelect:"none"}} onMouseLeave={()=>{dragRef.current.active=false;}}>
