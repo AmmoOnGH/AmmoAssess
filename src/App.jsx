@@ -423,8 +423,25 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .ni.cur{background:#fff;color:var(--text);font-weight:800}
 .ni.ans{background:rgb(0,109,91);color:#fff;font-weight:700}
 .ni.cur.ans{background:rgb(0,109,91);color:#fff;font-weight:800;outline:2px solid rgb(0,30,53);outline-offset:-2px}
+.ni.ans.wrong{background:#6D0012;color:#fff;font-weight:700}
+.ni.cur.ans.wrong{background:#6D0012;color:#fff;font-weight:800;outline:2px solid rgb(0,30,53);outline-offset:-2px}
 .ni-flag{position:absolute;right:7px;top:50%;transform:translateY(-50%);color:rgb(0,30,53);display:flex;align-items:center}
 .ni.ans .ni-flag{color:rgba(255,255,255,.75)}
+.tbb-on{background:rgba(255,255,255,.25)!important}
+/* Dark mode */
+.ew.dm{background:#0d1520;--bg:#0d1520;--panel:#1a2535;--border:#2a3a4a;--text:#d0dce8;--muted:#7a8fa0}
+.ew.dm .tb-gap{background:#1a2535}
+.ew.dm .sp,.ew.dm .ap,.ew.dm .np{background:#1a2535}
+.ew.dm .ob{background:#1a2838;border-color:#2e6b5a}
+.ew.dm .ob:hover:not(:disabled):not(.sel){background:rgba(0,120,100,.2)}
+.ew.dm .ni{background:#1a2535;border-bottom-color:#2a3a4a}
+.ew.dm .ni:hover{background:#243040}
+.ew.dm .ni.cur{background:#243040}
+.ew.dm .finish-modal{background:#1a2535;border-color:#2a4a6a}
+.ew.dm .finish-modal-body{color:#d0dce8}
+.ew.dm .finish-modal-ft{border-top-color:#2a3a4a}
+.ew.dm .fsq{background:#1a2535;border-color:#3a5a7a;color:#d0dce8}
+.ew.dm .fsq:hover{background:#243040}
 
 /* Stem panel */
 .sp{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
@@ -456,7 +473,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .fsq.fl{background:rgb(0,30,53);border-color:rgb(0,30,53);color:#fff}
 .flag-row{padding:8px 13px 4px;display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-shrink:0}
 .ab2{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 8px 100px 8px;display:flex;flex-direction:column;gap:0;margin:0}
-.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:0px 8px;margin-bottom:8px;min-width:48px;min-height:48px;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:300;line-height:1.5;color:var(--text);width:100%}
+.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:10px 8px;margin-bottom:8px;min-width:48px;min-height:48px;height:auto;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:300;line-height:1.5;color:var(--text);width:100%}
 .ob:hover:not(:disabled):not(.sel){background:rgba(0,109,91,.1)}
 .ob.sel{background:rgb(0,109,91);border-color:rgb(0,109,91);color:#fff}
 .ob.sel:hover{background:rgb(0,109,91)}
@@ -1421,7 +1438,12 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
   const [calcExpr,setCalcExpr]=useState("");
   const [navOpen,setNavOpen]=useState(true);
   const [showFinish,setShowFinish]=useState(false);
+  const [highlightOn,setHighlightOn]=useState(false);
+  const [highlights,setHighlights]=useState({});
+  const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem('exam-dm')==='1'}catch{return false}});
   const timerR=useRef(); const amberR=useRef();
+
+  useEffect(()=>{try{localStorage.setItem('exam-dm',darkMode?'1':'0')}catch{}},[darkMode]);
 
   function calcPress(val) {
     if(val==="C"){ setCalcExpr(""); return; }
@@ -1453,6 +1475,44 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
     return()=>window.removeEventListener("keydown",onKey);
   },[showCalc,calcExpr]);
 
+  // Keyboard shortcuts: arrows=navigate, 1-5=select option, f=flag, space=submit
+  useEffect(()=>{
+    function onKey(e){
+      if(showCalc) return;
+      const tag=e.target.tagName;
+      if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT") return;
+      const q=questions[cur];
+      const isSubmittedQ=practiceMode&&submitted[q.id];
+      if(e.key==="ArrowLeft"){
+        e.preventDefault();
+        if(cur>0) setCur(c=>c-1);
+        return;
+      }
+      if(e.key==="ArrowRight"){
+        e.preventDefault();
+        if(cur<questions.length-1) setCur(c=>c+1);
+        else setShowFinish(true);
+        return;
+      }
+      if(!isSubmittedQ&&["1","2","3","4","5"].includes(e.key)){
+        const letter=["A","B","C","D","E"][parseInt(e.key)-1];
+        setAns(a=>({...a,[q.id]:letter}));
+        return;
+      }
+      if(e.key==="f"||e.key==="F"){
+        setFlags(f=>({...f,[q.id]:!f[q.id]}));
+        return;
+      }
+      if(e.key===" "&&practiceMode&&!isSubmittedQ&&ans[q.id]&&tag!=="BUTTON"){
+        e.preventDefault();
+        setSubmitted(s=>({...s,[q.id]:true}));
+        return;
+      }
+    }
+    window.addEventListener("keydown",onKey);
+    return()=>window.removeEventListener("keydown",onKey);
+  },[showCalc,cur,questions,practiceMode,submitted,ans]);
+
   useEffect(()=>{
     amberR.current=setTimeout(()=>setAmberMsg(null),30000);
     timerR.current=setInterval(()=>{
@@ -1472,8 +1532,50 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
   const q=questions[cur];
   const warn=tLeft<300;
 
+  function handleStemMouseUp(){
+    if(!highlightOn) return;
+    const sel=window.getSelection();
+    if(!sel||sel.rangeCount===0||sel.isCollapsed) return;
+    const selectedText=sel.toString();
+    if(!selectedText.trim()) return;
+    const qId=questions[cur].id;
+    setHighlights(h=>{
+      const existing=h[qId]||[];
+      if(existing.includes(selectedText)){
+        return {...h,[qId]:existing.filter(t=>t!==selectedText)};
+      }
+      return {...h,[qId]:[...existing,selectedText]};
+    });
+    sel.removeAllRanges();
+  }
+
+  function renderStemWithHighlights(text,qId){
+    const hl=highlights[qId];
+    if(!hl||hl.length===0) return text;
+    const sorted=[...hl].sort((a,b)=>b.length-a.length);
+    const escaped=sorted.map(h=>h.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+    const regex=new RegExp(`(${escaped.join("|")})`,`g`);
+    const parts=text.split(regex);
+    return parts.map((part,i)=>{
+      if(hl.includes(part)){
+        return(
+          <mark key={i}
+            style={{background:"#fff176",borderRadius:2,padding:"0 1px",cursor:"pointer"}}
+            title="Click to remove highlight"
+            onClick={e=>{
+              e.stopPropagation();
+              setHighlights(h=>({...h,[qId]:(h[qId]||[]).filter(t=>t!==part)}));
+            }}>
+            {part}
+          </mark>
+        );
+      }
+      return part;
+    });
+  }
+
   return (
-    <div className="ew">
+    <div className={`ew${darkMode?" dm":""}`}>
       <style>{CSS}</style>
       <div className="tb">
         <button className="tbb" onClick={()=>setNavOpen(o=>!o)}>
@@ -1483,13 +1585,13 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
           {ExIc.finish}<span>Finish</span>
         </button>
         <button className="tbb" onClick={()=>setShowCalc(s=>!s)}>{ExIc.calculator}<span>Calculator</span></button>
-        <button className="tbb">{ExIc.colour}<span>Colour</span></button>
+        <button className={`tbb${darkMode?" tbb-on":""}`} onClick={()=>setDarkMode(d=>!d)}>{ExIc.colour}<span>Colour</span></button>
         <div className={`tt${warn?" w":""}`}>
           <span className="tv">{fmt(tLeft)}</span>
           <span className="tl">Time Remaining</span>
         </div>
         <button className="tbb">{ExIc.notes}<span>Notes</span></button>
-        <button className="tbb">{ExIc.highlight}<span>(Un)Highlight</span></button>
+        <button className={`tbb${highlightOn?" tbb-on":""}`} onClick={()=>setHighlightOn(h=>!h)}>{ExIc.highlight}<span>Highlight</span></button>
         <div className="ti"><span className="iv">{username}</span><span>User ID</span></div>
         <div className="tnav">
           <button onClick={()=>setCur(c=>c-1)} disabled={cur===0}>{ExIc.previous}<span>Previous</span></button>
@@ -1538,24 +1640,27 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
         <div className="np" style={navOpen?{}:{width:0,overflow:"hidden",borderRight:"none"}}>
           <div className="nh">Overview</div>
           <div className="nl">
-            {questions.map((q,i)=>(
-              <div key={q.id}
-                className={`ni${i===cur?" cur":""}${ans[q.id]?" ans":""}`}
-                onClick={()=>setCur(i)}>
-                {i+1}
-                {flags[q.id]&&(
-                  <span className="ni-flag">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                  </span>
-                )}
-              </div>
-            ))}
+            {questions.map((q,i)=>{
+              const isWrong=practiceMode&&submitted[q.id]&&ans[q.id]&&ans[q.id]!==q.answer;
+              return(
+                <div key={q.id}
+                  className={`ni${i===cur?" cur":""}${ans[q.id]?" ans":""}${isWrong?" wrong":""}`}
+                  onClick={()=>setCur(i)}>
+                  {i+1}
+                  {flags[q.id]&&(
+                    <span className="ni-flag">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         {/* Stem */}
         <div className="sp">
           <div className="shd">{cur+1}</div>
-          <div className="sbody"><p className="stxt">{q.stem}</p></div>
+          <div className="sbody"><p className="stxt" onMouseUp={handleStemMouseUp}>{renderStemWithHighlights(q.stem,q.id)}</p></div>
         </div>
         {/* Answer */}
         <div className="ap">
@@ -1599,7 +1704,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
               </button>
             )}
             {practiceMode&&submitted[q.id]&&q.explanation&&(
-              <div style={{margin:"10px 0 4px",background:"#eef4ff",border:"1.5px solid #b3cef5",borderRadius:5,padding:"13px 14px"}}>
+              <div style={{margin:"10px 0 4px",background:darkMode?"#1a2838":"#eef4ff",border:`1.5px solid ${darkMode?"#2a4a6a":"#b3cef5"}`,borderRadius:5,padding:"13px 14px"}}>
                 <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--teal)",marginBottom:7}}>Explanation</div>
                 <div style={{fontSize:14,lineHeight:1.65,color:"var(--text)"}}>{q.explanation}</div>
               </div>
