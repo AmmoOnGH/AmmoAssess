@@ -437,6 +437,9 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .ew.dm .ni{background:#1a2535;border-bottom-color:#2a3a4a}
 .ew.dm .ni:hover{background:#243040}
 .ew.dm .ni.cur{background:#243040}
+.ew.dm .stem-table th{background:rgb(20,50,80);color:#d0dce8}
+.ew.dm .stem-table td{border-color:#2a3a4a}
+.ew.dm .stem-table tr:nth-child(even) td{background:#1e2a38}
 .ew.dm .finish-modal{background:#1a2535;border-color:#2a4a6a}
 .ew.dm .finish-modal-body{color:#d0dce8}
 .ew.dm .finish-modal-ft{border-top-color:#2a3a4a}
@@ -448,6 +451,10 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .shd{background:rgb(0,30,53);color:rgb(212,228,255);font-size:15px;font-weight:300;padding:8px 16px;letter-spacing:.01em;flex-shrink:0;border-right:16px solid rgb(165,165,165)}
 .sbody{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:1px 0}
 .stxt{font-size:16.5px;line-height:1.5;font-weight:300;color:var(--text);margin:0 16px 16px 16px;padding-top:8px;user-select:text;-webkit-user-select:text}
+.stem-table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;line-height:1.4}
+.stem-table th{background:rgb(0,30,53);color:#fff;padding:6px 10px;text-align:left;font-weight:500;font-size:13.5px}
+.stem-table td{padding:6px 10px;border:1px solid #d0d0d0;vertical-align:top}
+.stem-table tr:nth-child(even) td{background:#f5f5f5}
 
 /* Answer panel */
 .ap{background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
@@ -473,12 +480,12 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px dott
 .fsq.fl{background:rgb(0,30,53);border-color:rgb(0,30,53);color:#fff}
 .flag-row{padding:8px 13px 4px;display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-shrink:0}
 .ab2{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:8px 8px 100px 8px;display:flex;flex-direction:column;gap:0;margin:0}
-.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:10px 8px;margin-bottom:8px;min-width:48px;min-height:48px;height:auto;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:300;line-height:1.5;color:var(--text);width:100%}
+.ob{display:flex;align-items:center;border-width:1.5px;border-style:solid;border-color:rgb(0,109,91);border-radius:5px;padding:10px 8px;margin-bottom:8px;min-width:48px;min-height:48px;height:auto;background:#fff;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:300;line-height:1.5;color:var(--text);width:100%;flex-shrink:0;-webkit-appearance:none}
 .ob:hover:not(:disabled):not(.sel){background:rgba(0,109,91,.1)}
 .ob.sel{background:rgb(0,109,91);border-color:rgb(0,109,91);color:#fff}
 .ob.sel:hover{background:rgb(0,109,91)}
 .ob:focus{outline:2px dashed rgb(0,109,91);outline-offset:2px}
-.ob:disabled{cursor:default;border-style:dashed}
+.ob:disabled{cursor:default;border-style:dashed;height:auto;min-height:48px}
 .ob.cor{background:var(--cb);border-color:var(--correct);color:var(--correct)}
 .ob.inc{background:var(--wb);border-color:var(--wrong);color:var(--wrong)}
 .olt{font-weight:bold;min-width:16px;flex-shrink:0;margin-right:8px;padding:8px 16px}
@@ -1597,6 +1604,59 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
     });
   }
 
+  function renderStem(text,qId){
+    if(!text.includes('|')&&!text.includes('\n'))return renderStemWithHighlights(text,qId);
+    function parseRow(row){
+      const t=row.trim();
+      const inner=t.startsWith('|')?t.slice(1):t;
+      const stripped=inner.endsWith('|')?inner.slice(0,-1):inner;
+      return stripped.split('|').map(c=>c.trim());
+    }
+    const lines=text.split('\n');
+    const segments=[];
+    let textLines=[];
+    for(const line of lines){
+      const t=line.trim();
+      const isPipe=t.includes('|')&&t.split('|').filter(c=>c.trim()).length>=2;
+      if(isPipe){
+        if(textLines.length>0){segments.push({type:'text',content:textLines.join('\n')});textLines=[];}
+        const last=segments[segments.length-1];
+        if(last&&last.type==='table')last.rows.push(line);
+        else segments.push({type:'table',rows:[line]});
+      }else{
+        textLines.push(line);
+      }
+    }
+    if(textLines.length>0)segments.push({type:'text',content:textLines.join('\n')});
+    if(segments.length===1&&segments[0].type==='text')return renderStemWithHighlights(text,qId);
+    return segments.map((seg,si)=>{
+      if(seg.type==='table'){
+        const rows=seg.rows.filter(r=>!/^[\s|:-]+$/.test(r.trim()));
+        if(!rows.length)return null;
+        const cells=rows.map(parseRow);
+        const[headers,...body]=cells;
+        return(
+          <table key={si} className="stem-table">
+            <thead><tr>{headers.map((h,hi)=><th key={hi}>{h}</th>)}</tr></thead>
+            <tbody>{body.map((row,ri)=><tr key={ri}>{row.map((c,ci)=><td key={ci}>{c}</td>)}</tr>)}</tbody>
+          </table>
+        );
+      }
+      const content=seg.content;
+      if(!content.includes('\n'))return renderStemWithHighlights(content,qId);
+      const ls=content.split('\n');
+      return(
+        <span key={si}>
+          {ls.flatMap((l,li)=>{
+            const hl=renderStemWithHighlights(l,qId);
+            const a=Array.isArray(hl)?hl:[hl];
+            return li<ls.length-1?[...a,<br key={`${si}-${li}`}/>]:a;
+          })}
+        </span>
+      );
+    });
+  }
+
   return (
     <div className={`ew${darkMode?" dm":""}`}>
       <style>{CSS}</style>
@@ -1683,7 +1743,7 @@ function ExamMode({ questions, totalTime, username, onFinish, onExit, practiceMo
         {/* Stem */}
         <div className="sp">
           <div className="shd">{cur+1}</div>
-          <div className="sbody"><p className="stxt" onMouseUp={handleStemMouseUp}>{renderStemWithHighlights(q.stem,q.id)}</p></div>
+          <div className="sbody"><div className="stxt" onMouseUp={handleStemMouseUp}>{renderStem(q.stem,q.id)}</div></div>
         </div>
         {/* Answer */}
         <div className="ap">
